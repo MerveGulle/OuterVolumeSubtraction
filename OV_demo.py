@@ -35,6 +35,19 @@ im_composite = x_com[:,:,0]
 figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray"); plt.axis('off')
 
 
+# %% mask selection
+ovs_mask = np.ones((Nx,Ny), dtype=bool)
+ovs_mask[:,25:55] = False
+# subtact these out from the data
+y_com1 = y_com[:,:,:,0]
+y_background = sf.im_to_kspace(sf.kspace_to_im(y_com1)*ovs_mask[...,None])
+# subtract out background
+y1 = datas[:,:,:,0]*acc_mask[...,None]
+y_diff = y1 - y_background*acc_mask[...,None]
+
+figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y_diff)), cmap="gray"); plt.axis('off')
+figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1)), cmap="gray"); plt.axis('off') 
+
 
 
 

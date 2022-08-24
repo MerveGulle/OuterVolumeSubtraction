@@ -26,6 +26,14 @@ acc_mask[:,::8] = True
 x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,0]*acc_mask[...,None]))
 figure = plt.figure(); plt.imshow(np.abs(x0), cmap="gray") 
 
+# %% composite data
+y_com = np.zeros([Nx,Ny,Nc,Ndyn-3], dtype=np.complex64)
+for ind in range(Ndyn-3):
+    y_com[:,:,:,ind] = np.sum(datas[:,:,:,ind:ind+4],3)
+x_com = sf.rssq(sf.kspace_to_im(y_com))
+im_composite = x_com[:,:,0]
+figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray"); plt.axis('off')
+
 
 
 

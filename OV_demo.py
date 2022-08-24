@@ -49,6 +49,30 @@ figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y_diff)), cmap="gray")
 figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1)), cmap="gray"); plt.axis('off') 
 
 
+# %% Generate coil maps
+y_low = np.zeros([Nx,Ny,Nc], dtype=np.complex64)
+ACS_size = 32
+LPF = np.hanning(48)[:,None] * np.hanning(ACS_size)[None,:]
+y_low[160-69-24:160-69+24,48-ACS_size//2:48+ACS_size//2,:] = y_com1[160-69-24:160-69+24,48-ACS_size//2:48+ACS_size//2,:] * LPF[...,None]
+x_low = sf.kspace_to_im(y_low)
+Smaps = x_low / sf.rssq(x_low + 1e-8)[...,None]
+Smaps_mask = Smaps * (1 - ovs_mask[...,None])
+
+y_low_diff = np.zeros([Nx,Ny,Nc], dtype=np.complex64)
+y_low_diff[160-69-24:160-69+24,48-ACS_size//2:48+ACS_size//2,:] = (y_com1-y_background)[160-69-24:160-69+24,48-ACS_size//2:48+ACS_size//2,:] * LPF[...,None]
+x_low_diff = sf.kspace_to_im(y_low_diff)
+Smaps_diff = x_low_diff / sf.rssq(x_low_diff + 1e-8)[...,None]
+
+figure = plt.figure(); 
+plt.imshow(np.abs(np.concatenate((Smaps[:,:,4],Smaps[:,:,7],Smaps[:,:,8],Smaps[:,:,10],Smaps[:,:,13],Smaps[:,:,20],Smaps[:,:,25],Smaps[:,:,27]),axis=1)), cmap="gray"); plt.axis('off')
+
+figure = plt.figure(); 
+plt.imshow(np.abs(np.concatenate((Smaps_mask[:,:,4],Smaps_mask[:,:,7],Smaps_mask[:,:,8],Smaps_mask[:,:,10],Smaps_mask[:,:,13],Smaps_mask[:,:,20],Smaps_mask[:,:,25],Smaps_mask[:,:,27]),axis=1)), cmap="gray"); plt.axis('off') 
+
+figure = plt.figure(); 
+plt.imshow(np.abs(np.concatenate((Smaps_diff[:,:,4],Smaps_diff[:,:,7],Smaps_diff[:,:,8],Smaps_diff[:,:,10],Smaps_diff[:,:,13],Smaps_diff[:,:,20],Smaps_diff[:,:,25],Smaps_diff[:,:,27]),axis=1)), cmap="gray") 
+
+
 
 
 

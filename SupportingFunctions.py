@@ -15,8 +15,8 @@ def A(x, Smaps, mask):
 def AT(x, Smaps):
     return np.sum(kspace_to_im(x)*np.conj(Smaps), 2)
 
-def cgsense(kspace,Coils,mask,max_iter=50):
-    a = AT(kspace,Coils)
+def cgsense(kspace,Smaps,mask,max_iter=50):
+    a = AT(kspace,Smaps)
     p = np.copy(a)
     r_now = np.copy(a)
     xn = np.zeros_like(a)
@@ -26,7 +26,7 @@ def cgsense(kspace,Coils,mask,max_iter=50):
             break
         else:
             # q = (EHE)p
-            q = AT(A(p,Coils,mask),Coils)
+            q = AT(A(p,Smaps,mask),Smaps)
             # rr_pq = r'r/p'q
             rr_pq = np.sum(r_now*np.conj(r_now))/np.sum(q*np.conj(p))
             xn = xn + rr_pq * p

@@ -73,6 +73,18 @@ figure = plt.figure();
 plt.imshow(np.abs(np.concatenate((Smaps_diff[:,:,4],Smaps_diff[:,:,7],Smaps_diff[:,:,8],Smaps_diff[:,:,10],Smaps_diff[:,:,13],Smaps_diff[:,:,20],Smaps_diff[:,:,25],Smaps_diff[:,:,27]),axis=1)), cmap="gray") 
 
 
+# %% results
+# no OVS processing
+cg_sense = sf.cgsense(y1, Smaps, acc_mask)
+# OVS from k-space
+cg_sense_OVS = sf.cgsense(y_diff, Smaps, acc_mask)
+# OVS from k-space and calibration in image space
+cg_sense_mask = sf.cgsense(y_diff, Smaps_mask, acc_mask)
+# OVS from k-space and calibration in k-space 
+cg_sense_diff = sf.cgsense(y_diff, Smaps_diff, acc_mask)
+
+background = im_composite * ovs_mask
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=0.003); plt.axis('off')
 
 
 

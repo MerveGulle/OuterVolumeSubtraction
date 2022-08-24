@@ -16,5 +16,29 @@ datas = datas.astype('complex64')
 
 Nx = datas.shape[0]             # num of y pixels (vertical)
 Ny = datas.shape[1]             # num of x pixels (horizontal)
-Nc = datas.shape[2]          # num of coils
-Ndyn = datas.shape[3]        # num of time frames
+Nc = datas.shape[2]             # num of coils
+Ndyn = datas.shape[3]           # num of time frames
+
+# %% Zerofilled image
+acc_mask = np.zeros((Nx,Ny), dtype=bool)
+acc_mask[:,::8] = True
+# first zerofilled image:x0
+x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,0]*acc_mask[...,None]))
+figure = plt.figure(); plt.imshow(np.abs(x0), cmap="gray") 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

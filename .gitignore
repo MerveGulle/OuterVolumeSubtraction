@@ -1,3 +1,4 @@
-*.mat
+realtime_data.mat
+realtime_data_small.mat
 *.png
 /Results

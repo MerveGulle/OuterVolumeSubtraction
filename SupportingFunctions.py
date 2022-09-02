@@ -15,7 +15,7 @@ def A(x, Smaps, mask):
 def AT(x, Smaps):
     return np.sum(kspace_to_im(x)*np.conj(Smaps), 2)
 
-def cgsense(kspace,Smaps,mask,max_iter=50):
+def cgsense(kspace,Smaps,mask,max_iter=20):
     a = AT(kspace,Smaps)
     p = np.copy(a)
     r_now = np.copy(a)

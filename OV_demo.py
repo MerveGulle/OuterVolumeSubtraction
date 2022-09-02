@@ -3,6 +3,7 @@ import SupportingFunctions as sf
 import mat73
 import matplotlib.pyplot as plt
 from espirit import espirit
+from scipy.io import loadmat
 
 
 # %% Data Loading
@@ -34,13 +35,19 @@ for ind in range(Ndyn-3):
     y_com[:,:,:,ind] = np.sum(datas[:,:,:,ind:ind+4],3)
 x_com = sf.rssq(sf.kspace_to_im(y_com))
 im_composite = x_com[:,:,0]
-figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray"); plt.axis('off')
+figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray", vmax=0.002); plt.axis('off')
 plt.title('composite image'); plt.axis('off')
 
 
 # %% mask selection
-ovs_mask = np.ones((Nx,Ny), dtype=bool)
-ovs_mask[:,25:55] = False
+
+# rectangular mask
+# ovs_mask = np.ones((Nx,Ny), dtype=bool)
+# ovs_mask[:,25:55] = False
+# only crop the heart
+# ovs_mask = loadmat('only_heart.mat')['target_mask']==1
+# crop the outer volume
+ovs_mask = loadmat('outer_volume.mat')['target_mask']==1
 # subtact these out from the data
 y_com1 = y_com[:,:,:,0]
 y_background = sf.im_to_kspace(sf.kspace_to_im(y_com1)*ovs_mask[...,None])
@@ -53,6 +60,7 @@ plt.title('OVS zerofilled image'); plt.axis('off')
 figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1)), cmap="gray"); plt.axis('off') 
 plt.title('zerofilled image'); plt.axis('off')
 
+"""
 # %% Generate coil maps with low resolution images
 y_low = np.zeros([Nx,Ny,Nc], dtype=np.complex64)
 ACS_size = 32
@@ -78,6 +86,7 @@ plt.title('Masked Sensitivity Maps - Low Res Img')
 figure = plt.figure(); 
 plt.imshow(np.abs(np.concatenate((Smaps1_diff[:,:,4],Smaps1_diff[:,:,7],Smaps1_diff[:,:,8],Smaps1_diff[:,:,10],Smaps1_diff[:,:,13],Smaps1_diff[:,:,20],Smaps1_diff[:,:,25],Smaps1_diff[:,:,27]),axis=1)), cmap="gray") 
 plt.title('OVS Sensitivity Maps - Low Res Img')
+"""
 
 
 # %% Generate coil maps with espirit
@@ -101,6 +110,7 @@ plt.imshow(np.abs(np.concatenate((Smaps2_diff[:,:,4],Smaps2_diff[:,:,7],Smaps2_d
 plt.title('OVS Sensitivity Maps - Espirit')
 
 
+"""
 # %% results with low resolution img Smaps
 # no OVS processing
 cg_sense = sf.cgsense(y1, Smaps1, acc_mask)
@@ -114,6 +124,7 @@ cg_sense_diff = sf.cgsense(y1_diff, Smaps1_diff, acc_mask)
 background = im_composite * ovs_mask
 figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=0.003); plt.axis('off')
 plt.title('Results for low res img Smaps'); plt.axis('off')
+"""
 
 
 # %% results with espirit Smaps
@@ -127,12 +138,37 @@ cg_sense_mask = sf.cgsense(y1_diff, Smaps2_mask, acc_mask)
 cg_sense_diff = sf.cgsense(y1_diff, Smaps2_diff, acc_mask)
 
 background = im_composite * ovs_mask
-figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=0.003); plt.axis('off')
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=0.002); plt.axis('off')
 plt.title('Results for espirit Smaps'); plt.axis('off')
 
 
 
 figure = plt.figure(); plt.imshow(np.log(np.abs(np.concatenate((sf.im_to_kspace(cg_sense),sf.im_to_kspace(cg_sense_OVS),sf.im_to_kspace(cg_sense_mask),sf.im_to_kspace(cg_sense_diff)), axis=1))), cmap="gray", vmax=0.003); plt.axis('off')
+
+
+# %% Condition number check
+# Sx = y,    inv(SHS) is needed
+# condition number of SHS matrix
+y = np.array([115, 123, 127])
+con_num = np.zeros((3, y.shape[0]))
+for i in np.arange(y.shape[0]):
+    A = Smaps2[y[i], 4:-1:Ny//8, :]
+    con_num[0,i] = np.linalg.cond(np.matmul(np.conj(A).T, A))
+print(f'Condition numbers for Smaps: {con_num[0,0]:.2e}, {con_num[0,1]:.2e} and {con_num[0,2]:.2e}')
+
+for i in np.arange(y.shape[0]):
+    B = Smaps2_mask[y[i], 4:-1:Ny//8, :]
+    A = B[np.sum(B,1)!=0]
+    con_num[1,i] = np.linalg.cond(np.matmul(np.conj(A).T, A))
+print(f'Condition numbers for Smaps: {con_num[1,0]:.2e}, {con_num[1,1]:.2e} and {con_num[1,2]:.2e}')
+
+
+for i in np.arange(y.shape[0]):
+    A = Smaps2_diff[y[i], 4:-1:Ny//8, :]
+    con_num[2,i] = np.linalg.cond(np.matmul(np.conj(A).T, A))
+print(f'Condition numbers for Smaps: {con_num[2,0]:.2e}, {con_num[2,1]:.2e} and {con_num[2,2]:.2e}')
+
+
 
 
 

@@ -85,7 +85,7 @@ def espirit(X, k, r, t, c):
                 Gq = kerimgs[idx,jdx,kdx,:,:]
 
                 u, s, vh = np.linalg.svd(Gq, full_matrices=True)
-                for ldx in range(0, nc):
+                for ldx in range(0, 1):
                     if (s[ldx]**2 > c):
                         maps[idx, jdx, kdx, :, ldx] = u[:, ldx]
 

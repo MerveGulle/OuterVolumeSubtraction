@@ -30,7 +30,7 @@ def espirit(X, k, r, t, c):
     syt = (sy//2-r//2, sy//2+r//2) if (sy > 1) else (0, 1)
     szt = (sz//2-r//2, sz//2+r//2) if (sz > 1) else (0, 1)
     
-    syt = (102-r//2, 102+r//2) if (sy > 1) else (0, 1)
+    syt = (92-r//2, 92+r//2) if (sy > 1) else (0, 1)
     szt = (46-r//2, 46+r//2) if (sz > 1) else (0, 1)
 
     

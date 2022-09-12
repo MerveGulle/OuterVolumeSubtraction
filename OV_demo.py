@@ -4,6 +4,7 @@ import mat73
 import matplotlib.pyplot as plt
 from espirit import espirit
 from scipy.io import loadmat
+from skimage.restoration import unwrap_phase
 
 
 # %% Data Loading
@@ -40,12 +41,13 @@ plt.title('composite image'); plt.axis('off')
 
 
 # %% mask selection
-
+"""
 # rectangular mask
-ovs_mask = np.ones((Nx,Ny), dtype=bool)
-ovs_mask[:,25:55] = False
+# ovs_mask = np.ones((Nx,Ny), dtype=bool)
+# ovs_mask[:,25:55] = False
+"""
 # only crop the heart
-# ovs_mask = loadmat('only_heart.mat')['target_mask']==1
+ovs_mask = loadmat('only_heart.mat')['target_mask']==1
 # crop the outer volume
 # ovs_mask = loadmat('outer_volume.mat')['target_mask']==1
 # subtact these out from the data
@@ -98,15 +100,15 @@ Smaps2_diff = espirit((y_com1-y_background)[None,...], 6, 24, 0.02, 0.95)
 Smaps2_diff = Smaps2_diff[0,:,:,:,0]
 
 figure = plt.figure();
-plt.imshow(np.abs(np.concatenate((Smaps2[:,:,4],Smaps2[:,:,7],Smaps2[:,:,8],Smaps2[:,:,10],Smaps2[:,:,13],Smaps2[:,:,20],Smaps2[:,:,25],Smaps2[:,:,27]),axis=1)), cmap="gray"); plt.axis('off')
+plt.imshow(np.abs(np.concatenate((Smaps2[:,:,4],Smaps2[:,:,7],Smaps2[:,:,8],Smaps2[:,:,10],Smaps2[:,:,13],Smaps2[:,:,20],Smaps2[:,:,25],Smaps2[:,:,27]),axis=1)), cmap="gray", vmax = 0.5); plt.axis('off')
 plt.title('Sensitivity Maps - Espirit')
 
 figure = plt.figure(); 
-plt.imshow(np.abs(np.concatenate((Smaps2_mask[:,:,4],Smaps2_mask[:,:,7],Smaps2_mask[:,:,8],Smaps2_mask[:,:,10],Smaps2_mask[:,:,13],Smaps2_mask[:,:,20],Smaps2_mask[:,:,25],Smaps2_mask[:,:,27]),axis=1)), cmap="gray"); plt.axis('off') 
+plt.imshow(np.abs(np.concatenate((Smaps2_mask[:,:,4],Smaps2_mask[:,:,7],Smaps2_mask[:,:,8],Smaps2_mask[:,:,10],Smaps2_mask[:,:,13],Smaps2_mask[:,:,20],Smaps2_mask[:,:,25],Smaps2_mask[:,:,27]),axis=1)), cmap="gray", vmax = 0.5); plt.axis('off') 
 plt.title('Masked Sensitivity Maps - Espirit')
 
 figure = plt.figure(); 
-plt.imshow(np.abs(np.concatenate((Smaps2_diff[:,:,4],Smaps2_diff[:,:,7],Smaps2_diff[:,:,8],Smaps2_diff[:,:,10],Smaps2_diff[:,:,13],Smaps2_diff[:,:,20],Smaps2_diff[:,:,25],Smaps2_diff[:,:,27]),axis=1)), cmap="gray") 
+plt.imshow(np.abs(np.concatenate((Smaps2_diff[:,:,4],Smaps2_diff[:,:,7],Smaps2_diff[:,:,8],Smaps2_diff[:,:,10],Smaps2_diff[:,:,13],Smaps2_diff[:,:,20],Smaps2_diff[:,:,25],Smaps2_diff[:,:,27]),axis=1)), cmap="gray", vmax = 0.5); plt.axis('off') 
 plt.title('OVS Sensitivity Maps - Espirit')
 
 
@@ -121,6 +123,7 @@ plt.title('Masked Sensitivity Maps - Espirit')
 figure = plt.figure(); 
 plt.imshow(np.angle(np.concatenate((Smaps2_diff[:,:,4],Smaps2_diff[:,:,7],Smaps2_diff[:,:,8],Smaps2_diff[:,:,10],Smaps2_diff[:,:,13],Smaps2_diff[:,:,20],Smaps2_diff[:,:,25],Smaps2_diff[:,:,27]),axis=1)), cmap="gray") 
 plt.title('OVS Sensitivity Maps - Espirit')
+
 
 
 """
@@ -142,13 +145,13 @@ plt.title('Results for low res img Smaps'); plt.axis('off')
 
 # %% results with espirit Smaps
 # no OVS processing
-cg_sense = sf.ADMM(y1, Smaps2, acc_mask)
+cg_sense = sf.cgsense(y1, Smaps2, acc_mask)
 # OVS from k-space
-cg_sense_OVS = sf.ADMM(y1_diff, Smaps2, acc_mask)
+cg_sense_OVS = sf.cgsense(y1_diff, Smaps2, acc_mask)
 # OVS from k-space and calibration in image space
-cg_sense_mask = sf.ADMM(y1_diff, Smaps2_mask, acc_mask)
+cg_sense_mask = sf.cgsense(y1_diff, Smaps2_mask, acc_mask)
 # OVS from k-space and calibration in k-space 
-cg_sense_diff = sf.ADMM(y1_diff, Smaps2_diff, acc_mask)
+cg_sense_diff = sf.cgsense(y1_diff, Smaps2_diff, acc_mask)
 
 background = im_composite * ovs_mask
 figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=0.0018); plt.axis('off')

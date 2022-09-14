@@ -21,19 +21,15 @@ def cgsense(kspace,Smaps,mask,max_iter=20):
     r_now = np.copy(a)
     xn = np.zeros_like(a)
     for i in np.arange(max_iter):
-        delta = np.sum(r_now*np.conj(r_now))/np.sum(a*np.conj(a))
-        if delta<1e-6:
-            break
-        else:
-            # q = (EHE)p
-            q = AT(A(p,Smaps,mask),Smaps)
-            # rr_pq = r'r/p'q
-            rr_pq = np.sum(r_now*np.conj(r_now))/np.sum(q*np.conj(p))
-            xn = xn + rr_pq * p
-            r_next = r_now - rr_pq * q
-            # p = r_next + r_next'r_next/r_now'r_now
-            p = r_next + (np.sum(r_next*np.conj(r_next))/np.sum(r_now*np.conj(r_now))) * p
-            r_now = np.copy(r_next)
+        # q = (EHE)p
+        q = AT(A(p,Smaps,mask),Smaps)
+        # rr_pq = r'r/p'q
+        rr_pq = np.sum(r_now*np.conj(r_now))/np.sum(q*np.conj(p))
+        xn = xn + rr_pq * p
+        r_next = r_now - rr_pq * q
+        # p = r_next + r_next'r_next/r_now'r_now
+        p = r_next + (np.sum(r_next*np.conj(r_next))/np.sum(r_now*np.conj(r_now))) * p
+        r_now = np.copy(r_next)
     return xn
 
 

@@ -13,7 +13,7 @@ from skimage.restoration import unwrap_phase
 # Load small data (1 slice) --> [320, 120, 30, 153]
 realtime_data = mat73.loadmat('realtime_data_small.mat')
 _, datas = list(realtime_data.items())[0]
-datas = datas[68:320,0:72,:,:]
+datas = datas[68:320,0:68,:,:]*1e6
 datas = datas.astype('complex64')
 
 Nx = datas.shape[0]             # num of y pixels (vertical)
@@ -36,9 +36,10 @@ for ind in range(Ndyn-3):
     y_com[:,:,:,ind] = np.sum(datas[:,:,:,ind:ind+4],3)
 x_com = sf.rssq(sf.kspace_to_im(y_com))
 im_composite = x_com[:,:,0]
-figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray", vmax=0.002); plt.axis('off')
+"""
+figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray", vmax=2000); plt.axis('off')
 plt.title('composite image'); plt.axis('off')
-
+"""
 
 # %% mask selection
 """
@@ -56,12 +57,12 @@ y_background = sf.im_to_kspace(sf.kspace_to_im(y_com1)*ovs_mask[...,None])
 # subtract out background
 y1 = datas[:,:,:,0]*acc_mask[...,None]
 y1_diff = y1 - y_background*acc_mask[...,None]
-
+"""
 figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1_diff)), cmap="gray"); plt.axis('off')
 plt.title('OVS zerofilled image'); plt.axis('off')
 figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1)), cmap="gray"); plt.axis('off') 
 plt.title('zerofilled image'); plt.axis('off')
-
+"""
 """
 # %% Generate coil maps with low resolution images
 y_low = np.zeros([Nx,Ny,Nc], dtype=np.complex64)
@@ -96,34 +97,41 @@ Smaps2 = espirit(y_com1[None,...], 6, 24, 0.02, 0.95)
 Smaps2 = Smaps2[0,:,:,:,0]
 Smaps2_mask = Smaps2 * (1 - ovs_mask[...,None])
 
-Smaps2_diff = espirit((y_com1-y_background)[None,...], 6, 24, 0.02, 0.95)
+Smaps2_diff = espirit((y_com1-y_background)[None,...], 12, 24, 0.02, 0.95)
 Smaps2_diff = Smaps2_diff[0,:,:,:,0]
 
+"""
 figure = plt.figure();
-plt.imshow(np.abs(np.concatenate((Smaps2[:,:,4],Smaps2[:,:,7],Smaps2[:,:,8],Smaps2[:,:,10],Smaps2[:,:,13],Smaps2[:,:,20],Smaps2[:,:,25],Smaps2[:,:,27]),axis=1)), cmap="gray", vmax = 0.5); plt.axis('off')
-plt.title('Sensitivity Maps - Espirit')
+plt.imshow(np.abs(np.concatenate((Smaps2[:,:,4],Smaps2[:,:,7],Smaps2[:,:,8],Smaps2[:,:,10],Smaps2[:,:,13],Smaps2[:,:,20],Smaps2[:,:,25],Smaps2[:,:,27]),axis=1)), cmap="gray", vmax = 0.5); 
+plt.axis('off')
+plt.title('Full Sensitivity Maps - Amplitude')
 
 figure = plt.figure(); 
-plt.imshow(np.abs(np.concatenate((Smaps2_mask[:,:,4],Smaps2_mask[:,:,7],Smaps2_mask[:,:,8],Smaps2_mask[:,:,10],Smaps2_mask[:,:,13],Smaps2_mask[:,:,20],Smaps2_mask[:,:,25],Smaps2_mask[:,:,27]),axis=1)), cmap="gray", vmax = 0.5); plt.axis('off') 
-plt.title('Masked Sensitivity Maps - Espirit')
+plt.imshow(np.abs(np.concatenate((Smaps2_mask[:,:,4],Smaps2_mask[:,:,7],Smaps2_mask[:,:,8],Smaps2_mask[:,:,10],Smaps2_mask[:,:,13],Smaps2_mask[:,:,20],Smaps2_mask[:,:,25],Smaps2_mask[:,:,27]),axis=1)), cmap="gray", vmax = 0.5); 
+plt.axis('off') 
+plt.title('Masked Sensitivity Maps - Amplitude')
 
 figure = plt.figure(); 
-plt.imshow(np.abs(np.concatenate((Smaps2_diff[:,:,4],Smaps2_diff[:,:,7],Smaps2_diff[:,:,8],Smaps2_diff[:,:,10],Smaps2_diff[:,:,13],Smaps2_diff[:,:,20],Smaps2_diff[:,:,25],Smaps2_diff[:,:,27]),axis=1)), cmap="gray", vmax = 0.5); plt.axis('off') 
-plt.title('OVS Sensitivity Maps - Espirit')
+plt.imshow(np.abs(np.concatenate((Smaps2_diff[:,:,4],Smaps2_diff[:,:,7],Smaps2_diff[:,:,8],Smaps2_diff[:,:,10],Smaps2_diff[:,:,13],Smaps2_diff[:,:,20],Smaps2_diff[:,:,25],Smaps2_diff[:,:,27]),axis=1)), cmap="gray", vmax = 0.5); 
+plt.axis('off') 
+plt.title('OVS Sensitivity Maps - Amplitude')
 
 
 figure = plt.figure();
-plt.imshow(np.angle(np.concatenate((Smaps2[:,:,4],Smaps2[:,:,7],Smaps2[:,:,8],Smaps2[:,:,10],Smaps2[:,:,13],Smaps2[:,:,20],Smaps2[:,:,25],Smaps2[:,:,27]),axis=1)), cmap="gray"); plt.axis('off')
-plt.title('Sensitivity Maps - Espirit')
+plt.imshow(np.angle(np.concatenate((Smaps2[:,:,4],Smaps2[:,:,7],Smaps2[:,:,8],Smaps2[:,:,10],Smaps2[:,:,13],Smaps2[:,:,20],Smaps2[:,:,25],Smaps2[:,:,27]),axis=1)), cmap="gray"); 
+plt.axis('off')
+plt.title('Full Sensitivity Maps - Phase')
 
 figure = plt.figure(); 
-plt.imshow(np.angle(np.concatenate((Smaps2_mask[:,:,4],Smaps2_mask[:,:,7],Smaps2_mask[:,:,8],Smaps2_mask[:,:,10],Smaps2_mask[:,:,13],Smaps2_mask[:,:,20],Smaps2_mask[:,:,25],Smaps2_mask[:,:,27]),axis=1)), cmap="gray"); plt.axis('off') 
-plt.title('Masked Sensitivity Maps - Espirit')
+plt.imshow(np.angle(np.concatenate((Smaps2_mask[:,:,4],Smaps2_mask[:,:,7],Smaps2_mask[:,:,8],Smaps2_mask[:,:,10],Smaps2_mask[:,:,13],Smaps2_mask[:,:,20],Smaps2_mask[:,:,25],Smaps2_mask[:,:,27]),axis=1)), cmap="gray"); 
+plt.axis('off') 
+plt.title('Masked Sensitivity Maps - Phase')
 
 figure = plt.figure(); 
-plt.imshow(np.angle(np.concatenate((Smaps2_diff[:,:,4],Smaps2_diff[:,:,7],Smaps2_diff[:,:,8],Smaps2_diff[:,:,10],Smaps2_diff[:,:,13],Smaps2_diff[:,:,20],Smaps2_diff[:,:,25],Smaps2_diff[:,:,27]),axis=1)), cmap="gray") 
-plt.title('OVS Sensitivity Maps - Espirit')
-
+plt.imshow(np.angle(np.concatenate((Smaps2_diff[:,:,4],Smaps2_diff[:,:,7],Smaps2_diff[:,:,8],Smaps2_diff[:,:,10],Smaps2_diff[:,:,13],Smaps2_diff[:,:,20],Smaps2_diff[:,:,25],Smaps2_diff[:,:,27]),axis=1)), cmap="gray"); 
+plt.axis('off')  
+plt.title('OVS Sensitivity Maps - Phase')
+"""
 
 
 """
@@ -154,12 +162,12 @@ cg_sense_mask = sf.cgsense(y1_diff, Smaps2_mask, acc_mask)
 cg_sense_diff = sf.cgsense(y1_diff, Smaps2_diff, acc_mask)
 
 background = im_composite * ovs_mask
-figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=0.0018); plt.axis('off')
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
 plt.title('Results for espirit Smaps'); plt.axis('off')
 
 
 
-figure = plt.figure(); plt.imshow(np.log(np.abs(np.concatenate((sf.im_to_kspace(cg_sense),sf.im_to_kspace(cg_sense_OVS),sf.im_to_kspace(cg_sense_mask),sf.im_to_kspace(cg_sense_diff)), axis=1))), cmap="gray", vmax=0.003); plt.axis('off')
+figure = plt.figure(); plt.imshow(np.log(np.abs(np.concatenate((sf.im_to_kspace(cg_sense),sf.im_to_kspace(cg_sense_OVS),sf.im_to_kspace(cg_sense_mask),sf.im_to_kspace(cg_sense_diff)), axis=1))), cmap="gray", vmax=20); plt.axis('off')
 
 
 # %% Condition number check

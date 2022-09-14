@@ -20,7 +20,9 @@ def espirit(X, k, r, t, c):
       maps: This is the ESPIRiT operator. It will have dimensions (sx, sy, sz, nc, nc) with (sx, sy, sz, :, idx)
             being the idx'th set of ESPIRiT maps.
     """
-
+    cy = 92
+    cz = 46
+    
     sx = np.shape(X)[0]
     sy = np.shape(X)[1]
     sz = np.shape(X)[2]
@@ -30,8 +32,8 @@ def espirit(X, k, r, t, c):
     syt = (sy//2-r//2, sy//2+r//2) if (sy > 1) else (0, 1)
     szt = (sz//2-r//2, sz//2+r//2) if (sz > 1) else (0, 1)
     
-    syt = (92-r//2, 92+r//2) if (sy > 1) else (0, 1)
-    szt = (46-r//2, 46+r//2) if (sz > 1) else (0, 1)
+    syt = (cy-r//2, cy+r//2) if (sy > 1) else (0, 1)
+    szt = (cz-r//2, cz+r//2) if (sz > 1) else (0, 1)
 
     
     # Extract calibration region.    
@@ -61,7 +63,7 @@ def espirit(X, k, r, t, c):
     kxt = (sx//2-k//2, sx//2+k//2) if (sx > 1) else (0, 1)
     kyt = (sy//2-k//2, sy//2+k//2) if (sy > 1) else (0, 1)
     kzt = (sz//2-k//2, sz//2+k//2) if (sz > 1) else (0, 1)
-
+    
     # Reshape into k-space kernel, flips it and takes the conjugate
     kernels = np.zeros(np.append(np.shape(X), n)).astype(np.complex64)
     kerdims = [(sx > 1) * k + (sx == 1) * 1, (sy > 1) * k + (sy == 1) * 1, (sz > 1) * k + (sz == 1) * 1, nc]

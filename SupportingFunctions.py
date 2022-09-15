@@ -32,6 +32,8 @@ def cgsense(kspace,Smaps,mask,max_iter=50):
             # p = r_next + r_next'r_next/r_now'r_now
             p = r_next + (np.sum(r_next*np.conj(r_next))/np.sum(r_now*np.conj(r_now))) * p
             r_now = np.copy(r_next)
+        else:
+            break
     return xn
 
 
@@ -88,7 +90,17 @@ def gfactor(Smaps, R):
     return gmap
 
 
-
+def sense(Smaps, kspace, R):
+    Nx, Ny, Nc = Smaps.shape
+    kspace = kspace[:,::8]
+    x0 = kspace_to_im(kspace)
+    image = np.zeros((Nx, Ny), dtype=complex)
+    Cy = Ny//R + 1 * (np.mod(Ny,R)!=0)
+    for xx in np.arange(Nx):
+        for yy in np.arange(Cy):
+            S = Smaps[xx,yy::Cy,:].T
+            image[xx,yy::Cy] = np.matmul(np.linalg.pinv(S), x0[xx,yy,:])
+    return image
 
 
 

@@ -161,13 +161,13 @@ cg_sense_mask = sf.cgsense(y1_diff, Smaps2_mask, acc_mask)
 # OVS from k-space and calibration in k-space 
 cg_sense_diff = sf.cgsense(y1_diff, Smaps2_diff, acc_mask)
 
-background = im_composite * ovs_mask
+background = im_composite * ovs_mask * 0
 figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
 plt.title('Results for espirit Smaps'); plt.axis('off')
 
 
 
-figure = plt.figure(); plt.imshow(np.log(np.abs(np.concatenate((sf.im_to_kspace(cg_sense),sf.im_to_kspace(cg_sense_OVS),sf.im_to_kspace(cg_sense_mask),sf.im_to_kspace(cg_sense_diff)), axis=1))), cmap="gray", vmax=20); plt.axis('off')
+figure = plt.figure(); plt.imshow(np.log(np.abs(np.concatenate((sf.im_to_kspace(cg_sense),sf.im_to_kspace(cg_sense_OVS),sf.im_to_kspace(cg_sense_mask),sf.im_to_kspace(cg_sense_diff)), axis=1))), cmap="gray", vmax=10); plt.axis('off')
 
 
 # %% Condition number check
@@ -192,10 +192,25 @@ for i in np.arange(y.shape[0]):
     con_num[2,i] = np.linalg.cond(np.matmul(A, np.conj(A).T))
 print(f'Condition numbers for Smaps: {con_num[2,0]:.2e}, {con_num[2,1]:.2e} and {con_num[2,2]:.2e}')
 
+# %% g-factor maps
+gmap = sf.gfactor(Smaps2,8)
+gmap_mask = sf.gfactor(Smaps2_mask,8)
+gmap_diff = sf.gfactor(Smaps2_diff,8)
 
-
-
-
+figure = plt.figure()
+plt.subplot(1,3,1)
+plt.imshow(np.abs(gmap),cmap="jet",vmax=4)
+plt.axis("off")
+plt.title("g-factor map of full sens map")
+plt.subplot(1,3,2)
+plt.imshow(np.abs(gmap_mask),cmap="jet",vmax=4)
+plt.axis("off")
+plt.title("g-factor map of masked sens map")
+plt.subplot(1,3,3)
+plt.imshow(np.abs(gmap_diff),cmap="jet",vmax=4)
+plt.axis("off")
+plt.title("g-factor map of ovs sens map")
+plt.colorbar()
 
 
 

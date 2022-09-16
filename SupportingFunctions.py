@@ -103,8 +103,34 @@ def sense(Smaps, kspace, R):
     return image
 
 
+def kernel_cal(data_calib, R=4, Kx=5):
+    Cx, Cy, Nc = data_calib.shape
+    kernel = np.zeros((R-1, Nc, Kx*2*Nc), dtype=complex)
+    ACS = np.zeros(((Cx-Kx+1)*(Cy-R), Kx*2*Nc), dtype=complex)
+    for x in np.arange(Cx-Kx+1):
+        for y in np.arange(Cy-R):
+            ACS[x*(Cy-R)+y] = data_calib[x:x+Kx,[y,y+R],:].reshape(1,-1)
+    iACS = np.linalg.pinv(ACS)
+    for y in np.arange(R-1):
+        for c in np.arange(Nc):
+            kernel[y,c] = np.matmul(iACS,data_calib[(Kx-1)//2:-(Kx-1)//2,y+1:Cy-R+y+1,c].reshape(-1,1)).reshape(1,1,-1)
+    return kernel
 
 
+def grappa(kspace, kernel, time_frame, R=4, Kx=5):
+    Nx, Ny, Nc = kspace.shape
+    shift = np.mod(time_frame, R)
+    Nl = np.mod(Ny-shift-1, R)
+    ACS = np.zeros(((Nx-Kx+1)*((Ny-R)//R), Kx*2*Nc), dtype=complex)
+    for x in np.arange(Nx-Kx+1):
+        for y in np.arange((Ny-R)//R):
+            ACS[x*((Ny-R)//R)+y] = kspace[x:x+Kx,[y*R+shift,y*R+R+shift],:].reshape(1,-1)
+    
+    for y in np.arange(R-1):
+        for c in np.arange(Nc):
+            kspace[(Kx-1)//2:-(Kx-1)//2,y+1+shift:Ny-Nl-R+y+1:R,c] = np.matmul(ACS,kernel[y,c].reshape(-1,1)).reshape(Nx-Kx+1,-1)
+    image = rssq(kspace_to_im(kspace))
+    return image
 
 
 

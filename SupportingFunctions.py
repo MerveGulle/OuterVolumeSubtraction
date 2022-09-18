@@ -90,6 +90,20 @@ def gfactor(Smaps, R):
     return gmap
 
 
+def gfactor_MC(Smaps, R):
+    Nx, Ny, Nc = Smaps.shape
+    N = 200
+    mask = np.zeros((Nx,Ny))
+    mask[:,::R] = Ny/((Ny//R)+1)
+    image = np.random.randn(Nx,Ny,2*N).view(complex)
+    image0 = np.zeros_like(image)
+    for n in np.arange(N):
+        kspace = A(image[:,:,n], Smaps, mask)
+        image0[:,:,n] = AT(kspace*mask[:,:,None], Smaps)
+    gmap = np.std(image0,axis=2)/np.std(image,axis=2)/np.sqrt(R)
+    return gmap
+
+
 def sense(Smaps, kspace, R):
     Nx, Ny, Nc = Smaps.shape
     kspace = kspace[:,::8]
@@ -125,11 +139,11 @@ def grappa(kspace, kernel, time_frame, R=4, Kx=5):
     for x in np.arange(Nx-Kx+1):
         for y in np.arange((Ny-R)//R):
             ACS[x*((Ny-R)//R)+y] = kspace[x:x+Kx,[y*R+shift,y*R+R+shift],:].reshape(1,-1)
-    
+    kspace_new = kspace
     for y in np.arange(R-1):
         for c in np.arange(Nc):
-            kspace[(Kx-1)//2:-(Kx-1)//2,y+1+shift:Ny-Nl-R+y+1:R,c] = np.matmul(ACS,kernel[y,c].reshape(-1,1)).reshape(Nx-Kx+1,-1)
-    image = rssq(kspace_to_im(kspace))
+            kspace_new[(Kx-1)//2:-(Kx-1)//2,y+1+shift:Ny-Nl-R+y+1:R,c] = np.matmul(ACS,kernel[y,c].reshape(-1,1)).reshape(Nx-Kx+1,-1)
+    image = rssq(kspace_to_im(kspace_new))
     return image
 
 

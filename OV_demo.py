@@ -21,21 +21,54 @@ Ny = datas.shape[1]             # num of x pixels (horizontal)
 Nc = datas.shape[2]             # num of coils
 Ndyn = datas.shape[3]           # num of time frames
 
-# %% Zerofilled image
-acc_mask = np.zeros((Nx,Ny), dtype=bool)
-acc_mask[:,::8] = True
-# first zerofilled image:x0
-x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,0]*acc_mask[...,None]))
-figure = plt.figure(); plt.imshow(np.abs(x0), cmap="gray"); 
-plt.title('zerofilled image'); plt.axis('off')
-
 
 # %% composite data
 y_com = np.zeros([Nx,Ny,Nc,Ndyn-3], dtype=np.complex64)
 for ind in range(Ndyn-3):
     y_com[:,:,:,ind] = np.sum(datas[:,:,:,ind:ind+4],3)
+
+"""
+# %% image recontruction for the first 20 time frames
+images20 = np.zeros_like(y_com[:,:,0,0:20])
+
+for tf in np.arange(20):
+    kernel = sf.kernel_cal(y_com[:,30:62,:,tf])
+    images20[:,:,tf] = sf.grappa(datas[:,:,:,tf], kernel, tf)
+    
+figure = plt.figure(figsize=(12,12))
+for tf in np.arange(20):
+    plt.subplot(2,10,tf+1)
+    plt.imshow(np.abs(images20[:,:,tf]),cmap="gray",vmax=2000)
+    plt.title('TF #'+f'{tf+1}',fontsize=12)
+    plt.axis("off")
+   
+figure = plt.figure(figsize=(12,4))
+for tf in np.arange(10):
+    plt.subplot(2,5,tf+1)
+    plt.imshow(np.abs(images20[93:160,11:65,tf]),cmap="gray",vmax=2000)
+    plt.title('TF #'+f'{tf+1}',fontsize=12)
+    plt.axis("off")
+"""
+
+# %% time frame = 8 (Ndyn=7) : Cardiac contraction
+TF = 7
+shift = np.mod(TF, 8)
+
+
+# %% Zerofilled image
+acc_mask = np.zeros((Nx,Ny), dtype=bool)
+acc_mask[:,shift::8] = True
+# zerofilled image:x0
+x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,TF]*acc_mask[...,None]))
+"""
+figure = plt.figure(); plt.imshow(np.abs(x0), cmap="gray"); 
+plt.title('zerofilled image'); plt.axis('off')
+"""
+
+
+# %% composite images
 x_com = sf.rssq(sf.kspace_to_im(y_com))
-im_composite = x_com[:,:,0]
+im_composite = x_com[:,:,TF]
 """
 figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray", vmax=2000); plt.axis('off')
 plt.title('composite image'); plt.axis('off')
@@ -48,14 +81,14 @@ plt.title('composite image'); plt.axis('off')
 # ovs_mask[:,25:55] = False
 """
 # only crop the heart
-ovs_mask = loadmat('only_heart.mat')['target_mask']==1
+# ovs_mask = loadmat('only_heart.mat')['target_mask']==1
 # crop the outer volume
-# ovs_mask = loadmat('outer_volume.mat')['target_mask']==1
+ovs_mask = loadmat('outer_volume.mat')['target_mask']==1
 # subtact these out from the data
-y_com1 = y_com[:,:,:,0]
+y_com1 = y_com[:,:,:,TF]
 y_background = sf.im_to_kspace(sf.kspace_to_im(y_com1)*ovs_mask[...,None])
 # subtract out background
-y1 = datas[:,:,:,0]*acc_mask[...,None]
+y1 = datas[:,:,:,TF]*acc_mask[...,None]
 y1_diff = y1 - y_background*acc_mask[...,None]
 """
 figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1_diff)), cmap="gray"); plt.axis('off')
@@ -93,11 +126,11 @@ plt.title('OVS Sensitivity Maps - Low Res Img')
 
 
 # %% Generate coil maps with espirit
-Smaps2 = espirit(y_com1[None,...], 6, 24, 0.02, 0.95)
+Smaps2 = espirit(y_com1[None,...], 6, 44, 0.02, 0.95)
 Smaps2 = Smaps2[0,:,:,:,0]
 Smaps2_mask = Smaps2 * (1 - ovs_mask[...,None])
 
-Smaps2_diff = espirit((y_com1-y_background)[None,...], 12, 24, 0.02, 0.95)
+Smaps2_diff = espirit((y_com1-y_background)[None,...], 6, 44, 0.02, 0.95)
 Smaps2_diff = Smaps2_diff[0,:,:,:,0]
 
 """
@@ -166,7 +199,6 @@ figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+b
 plt.title('Results for espirit Smaps'); plt.axis('off')
 
 
-
 figure = plt.figure(); plt.imshow(np.log(np.abs(np.concatenate((sf.im_to_kspace(cg_sense),sf.im_to_kspace(cg_sense_OVS),sf.im_to_kspace(cg_sense_mask),sf.im_to_kspace(cg_sense_diff)), axis=1))), cmap="gray", vmax=10); plt.axis('off')
 
 
@@ -193,21 +225,21 @@ for i in np.arange(y.shape[0]):
 print(f'Condition numbers for Smaps: {con_num[2,0]:.2e}, {con_num[2,1]:.2e} and {con_num[2,2]:.2e}')
 
 # %% g-factor maps
-gmap = sf.gfactor(Smaps2,8)
-gmap_mask = sf.gfactor(Smaps2_mask,8)
-gmap_diff = sf.gfactor(Smaps2_diff,8)
+gmap = sf.gfactor_MC(Smaps2,8)
+gmap_mask = sf.gfactor_MC(Smaps2_mask,8)
+gmap_diff = sf.gfactor_MC(Smaps2_diff,8)
 
 figure = plt.figure()
 plt.subplot(1,3,1)
-plt.imshow(np.abs(gmap),cmap="jet",vmax=4)
+plt.imshow(np.abs(gmap),cmap="turbo",vmax=7)
 plt.axis("off")
 plt.title("g-factor map of full sens map")
 plt.subplot(1,3,2)
-plt.imshow(np.abs(gmap_mask),cmap="jet",vmax=4)
+plt.imshow(np.abs(gmap_mask),cmap="turbo",vmax=7)
 plt.axis("off")
 plt.title("g-factor map of masked sens map")
 plt.subplot(1,3,3)
-plt.imshow(np.abs(gmap_diff),cmap="jet",vmax=4)
+plt.imshow(np.abs(gmap_diff),cmap="turbo",vmax=7)
 plt.axis("off")
 plt.title("g-factor map of ovs sens map")
 plt.colorbar()

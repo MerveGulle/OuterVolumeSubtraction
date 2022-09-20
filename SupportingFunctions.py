@@ -90,30 +90,58 @@ def gfactor(Smaps, R):
     return gmap
 
 
-def gfactor_MC(Smaps, R):
+def gfactor_MC(Smaps, R=8):
     Nx, Ny, Nc = Smaps.shape
-    N = 200
+    N = 100
     mask = np.zeros((Nx,Ny))
-    mask[:,::R] = Ny/((Ny//R)+1)
-    image = np.random.randn(Nx,Ny,2*N).view(complex)
-    image0 = np.zeros_like(image)
+    mask[:,::R] = 1
+    image0 = np.zeros((Nx,Ny,N), dtype=np.complex)
+    image = np.zeros((Nx,Ny,N), dtype=np.complex)
     for n in np.arange(N):
+        image[:,:,n] = np.random.randn(Nx,Ny) + 1j*np.random.randn(Nx,Ny)
         kspace = A(image[:,:,n], Smaps, mask)
         image0[:,:,n] = AT(kspace*mask[:,:,None], Smaps)
-    gmap = np.std(image0,axis=2)/np.std(image,axis=2)/np.sqrt(R)
+    gmap = np.std(image0.real,axis=2)/np.std(image.real,axis=2)/np.sqrt(R)
     return gmap
 
+"""
+def gfactor_MC(kspace, Smaps, R):
+    N = 100
+    Nx,Ny,Nc = Smaps.shape
+    mask = np.zeros((Nx,Ny), dtype=complex)
+    mask[:,::R] = 1
 
-def sense(Smaps, kspace, R):
+    recons = np.zeros((Nx,Ny,N), dtype=complex)
+    for i in range(N):
+        ksp_noise = np.random.randn(*kspace.shape) + 1j*np.random.randn(*kspace.shape)
+        ksp_noise = mask[...,None] * (ksp_noise + kspace)
+        recons[:,:,i] = AT(ksp_noise, Smaps)
+    
+    recons_noise = np.zeros((Nx,Ny,N), dtype=np.complex)  
+    for i in range(N):
+        ksp_noise = np.random.randn(*kspace.shape) + 1j*np.random.randn(*kspace.shape)
+        recons_noise[:,:,i] = AT(ksp_noise, Smaps)
+    
+    recons_std = np.std(recons.real, axis=2)
+    recon_noise_std = np.std(recons_noise, axis=2)
+
+    gfactor = np.divide(recons_std, recon_noise_std, where=abs(recons[:,:,0].squeeze()) != 0) / np.sqrt(R)
+
+    return gfactor
+"""
+
+
+def sense(kspace, Smaps, R=8):
     Nx, Ny, Nc = Smaps.shape
-    kspace = kspace[:,::8]
+    kspace = kspace[:,np.abs(kspace[92,:,0])!=0,:]
     x0 = kspace_to_im(kspace)
     image = np.zeros((Nx, Ny), dtype=complex)
-    Cy = Ny//R + 1 * (np.mod(Ny,R)!=0)
+    Cy = Ny//R
     for xx in np.arange(Nx):
         for yy in np.arange(Cy):
             S = Smaps[xx,yy::Cy,:].T
-            image[xx,yy::Cy] = np.matmul(np.linalg.pinv(S), x0[xx,yy,:])
+            invS = np.matmul(np.linalg.inv(np.matmul(np.conj(S).T,S) + 1e-2*np.identity(S.shape[1])), np.conj(S).T)
+            image[xx,yy::Cy] = np.matmul(invS, x0[xx,np.mod(yy+Cy//2,Cy),:])
     return image
 
 
@@ -139,7 +167,7 @@ def grappa(kspace, kernel, time_frame, R=4, Kx=5):
     for x in np.arange(Nx-Kx+1):
         for y in np.arange((Ny-R)//R):
             ACS[x*((Ny-R)//R)+y] = kspace[x:x+Kx,[y*R+shift,y*R+R+shift],:].reshape(1,-1)
-    kspace_new = kspace
+    kspace_new = np.copy(kspace)
     for y in np.arange(R-1):
         for c in np.arange(Nc):
             kspace_new[(Kx-1)//2:-(Kx-1)//2,y+1+shift:Ny-Nl-R+y+1:R,c] = np.matmul(ACS,kernel[y,c].reshape(-1,1)).reshape(Nx-Kx+1,-1)

@@ -34,7 +34,12 @@ for tf in np.arange(num_img):
     plt.title('TF #'+f'{tf+1}',fontsize=12)
     plt.axis("off")
     
-    
+
+# %% time frame = 22 (Ndyn=21) : Cardiac contraction
+TF = 21
+shift = np.mod(TF, 8)
+
+
     
     
     

@@ -60,7 +60,19 @@ plt.title('zerofilled image'); plt.axis('off')
 """
 
 
-
+# %% composite data
+y_com = np.zeros([Nx,Ny,Nc,Ndyn-3], dtype=np.complex64)
+for ind in range(Ndyn-3):
+    y_com[:,:,:,ind] = np.sum(datas[:,:,:,ind:ind+4],3)
+"""
+figure = plt.figure()
+for tf in np.arange(8):
+    plt.subplot(1,8,tf+1)
+    plt.imshow(np.log(np.abs(y_com[:,:,0,tf])),cmap="gray")
+    plt.title('TF #'+f'{tf+1}',fontsize=10)
+    plt.axis("off")
+plt.suptitle("composite kspace",fontsize=12)
+"""
 
 
 

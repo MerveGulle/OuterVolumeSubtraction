@@ -4,6 +4,12 @@ import mat73
 import matplotlib.pyplot as plt
 from espirit import espirit
 from scipy.io import loadmat
+from scipy.io import savemat
+
+
+# %% Hyperparameters
+mask_type = "only_heart"
+# mask_type = "outer_volume"
 
 
 # %% Data Loading
@@ -84,7 +90,21 @@ plt.title('composite image'); plt.axis('off')
 """
 
 
-
+# %% Subtraction the outer volume signal
+filename = str(mask_type) + "_subject" + str(subject_number) + ".mat"
+ovs_mask = loadmat(filename)['target_mask']==1
+# subtact these out from the data
+y_com1 = y_com[:,:,:,TF]
+y_background = sf.im_to_kspace(sf.kspace_to_im(y_com1)*ovs_mask[...,None])
+# subtract out background
+y1 = datas[:,:,:,TF]*acc_mask[...,None]
+y1_diff = y1 - y_background*acc_mask[...,None]
+"""
+figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1_diff)), cmap="gray"); plt.axis('off')
+plt.title('OVS zerofilled image'); plt.axis('off')
+figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1)), cmap="gray"); plt.axis('off') 
+plt.title('zerofilled image'); plt.axis('off')
+"""
     
     
     

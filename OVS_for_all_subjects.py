@@ -22,7 +22,15 @@ Nx = datas.shape[0]             # num of RO pixels (vertical)
 Ny = datas.shape[1]             # num of PE pixels (horizontal)
 Nc = datas.shape[2]             # num of coils
 Ndyn = datas.shape[3]           # num of time frames
-
+"""
+figure = plt.figure()
+for tf in np.arange(8):
+    plt.subplot(1,8,tf+1)
+    plt.imshow(np.log(np.abs(datas[:,:,0,tf])+1),cmap="gray")
+    plt.title('TF #'+f'{tf+1}',fontsize=10)
+    plt.axis("off")
+plt.suptitle("acquired data with R=4",fontsize=12)
+"""
 
 # %% images for the first 24 time frames
 num_img = 24
@@ -50,6 +58,9 @@ x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,TF]*acc_mask[...,None]))
 figure = plt.figure(); plt.imshow(np.abs(x0), cmap="gray"); 
 plt.title('zerofilled image'); plt.axis('off')
 """
+
+
+
 
 
 

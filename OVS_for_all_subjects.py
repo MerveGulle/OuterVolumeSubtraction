@@ -35,9 +35,22 @@ for tf in np.arange(num_img):
     plt.axis("off")
     
 
-# %% time frame = 22 (Ndyn=21) : Cardiac contraction
+# %% Cardiac contraction : time frame = 22 (Ndyn=21)
 TF = 21
 shift = np.mod(TF, 8)
+
+
+# %% Zerofilled image
+# acceleration mask
+acc_mask = np.zeros((Nx,Ny), dtype=bool)
+acc_mask[:,shift::8] = True
+# zerofilled image:x0
+x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,TF]*acc_mask[...,None]))
+"""
+figure = plt.figure(); plt.imshow(np.abs(x0), cmap="gray"); 
+plt.title('zerofilled image'); plt.axis('off')
+"""
+
 
 
     

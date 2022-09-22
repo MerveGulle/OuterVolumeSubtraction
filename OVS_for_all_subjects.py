@@ -75,6 +75,15 @@ plt.suptitle("composite kspace",fontsize=12)
 """
 
 
+# %% composite image
+x_com = sf.rssq(sf.kspace_to_im(y_com))
+im_composite = x_com[:,:,TF]
+"""
+figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray", vmax=2000); plt.axis('off')
+plt.title('composite image'); plt.axis('off')
+"""
+
+
 
     
     

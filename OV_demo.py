@@ -4,16 +4,16 @@ import mat73
 import matplotlib.pyplot as plt
 from espirit import espirit
 from scipy.io import loadmat
-from skimage.restoration import unwrap_phase
 
 
 # %% Data Loading
 # Load full data (12 slices) --> [320, 120, 30, 153, 12]
 # realtime_data = mat73.loadmat('realtime_data.mat')
 # Load small data (1 slice) --> [320, 120, 30, 153]
+# realtime_data = mat73.loadmat('realtime_data_small.mat')
 realtime_data = mat73.loadmat('realtime_data_small.mat')
 _, datas = list(realtime_data.items())[0]
-datas = datas[68:320,0:68,:,:]*1e6
+datas = datas[68:320,0:72,:,:]*1e6
 datas = datas.astype('complex64')
 
 Nx = datas.shape[0]             # num of y pixels (vertical)
@@ -27,31 +27,43 @@ y_com = np.zeros([Nx,Ny,Nc,Ndyn-3], dtype=np.complex64)
 for ind in range(Ndyn-3):
     y_com[:,:,:,ind] = np.sum(datas[:,:,:,ind:ind+4],3)
 
-"""
-# %% image recontruction for the first 20 time frames
-images20 = np.zeros_like(y_com[:,:,0,0:20])
 
-for tf in np.arange(20):
-    kernel = sf.kernel_cal(y_com[:,30:62,:,tf])
-    images20[:,:,tf] = sf.grappa(datas[:,:,:,tf], kernel, tf)
+# %% image recontruction for the first 20 time frames
+num_img = 20
+imagesN = np.zeros_like(y_com[:,:,0,0:num_img])
+mask = np.zeros((y_com.shape[0], y_com.shape[1]))
+mask[:,::4] = 1
+for tf in np.arange(num_img):
+    Smaps = espirit(y_com[None,:,:,:,tf], 6, 24, 0.02, 0.95)
+    Smaps = Smaps[0,:,:,:,0]
+    imagesN[:,:,tf] = sf.cgsense(datas[:,:,:,tf], Smaps, np.roll(mask,tf,axis=1))
+
+for tf in np.arange(num_img):
+    kernel = sf.kernel_cal(y_com[80:104,34:58,:,tf])
+    imagesN[:,:,tf] = sf.grappa(datas[:,:,:,tf], kernel, tf)
     
 figure = plt.figure(figsize=(12,12))
-for tf in np.arange(20):
-    plt.subplot(2,10,tf+1)
-    plt.imshow(np.abs(images20[:,:,tf]),cmap="gray",vmax=2000)
+for tf in np.arange(num_img):
+    plt.subplot(2,num_img//2,tf+1)
+    plt.imshow(np.abs(imagesN[:,:,tf]),cmap="gray",vmax=2000)
     plt.title('TF #'+f'{tf+1}',fontsize=12)
     plt.axis("off")
    
 figure = plt.figure(figsize=(12,4))
-for tf in np.arange(10):
-    plt.subplot(2,5,tf+1)
-    plt.imshow(np.abs(images20[93:160,11:65,tf]),cmap="gray",vmax=2000)
+for tf in np.arange(num_img):
+    plt.subplot(2,num_img//2,tf+1)
+    plt.imshow(np.abs(imagesN[93:160,11:65,tf]),cmap="gray",vmax=2000)
     plt.title('TF #'+f'{tf+1}',fontsize=12)
     plt.axis("off")
-"""
+
+figure = plt.figure(figsize=(12,12))
+for tf in np.arange(num_img):
+    plt.subplot(2,10,tf+1)
+    plt.imshow(sf.rssq(sf.kspace_to_im(datas[:,:,:,tf])),cmap="gray",vmax=1000)
+    plt.axis("off")
 
 # %% time frame = 8 (Ndyn=7) : Cardiac contraction
-TF = 7
+TF = 0
 shift = np.mod(TF, 8)
 
 
@@ -74,6 +86,7 @@ figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray", vmax=2000);
 plt.title('composite image'); plt.axis('off')
 """
 
+
 # %% mask selection
 """
 # rectangular mask
@@ -81,9 +94,9 @@ plt.title('composite image'); plt.axis('off')
 # ovs_mask[:,25:55] = False
 """
 # only crop the heart
-# ovs_mask = loadmat('only_heart.mat')['target_mask']==1
+ovs_mask = loadmat('only_heart_252x72.mat')['target_mask']==1
 # crop the outer volume
-ovs_mask = loadmat('outer_volume.mat')['target_mask']==1
+# ovs_mask = loadmat('outer_volume_252x72.mat')['target_mask']==1
 # subtact these out from the data
 y_com1 = y_com[:,:,:,TF]
 y_background = sf.im_to_kspace(sf.kspace_to_im(y_com1)*ovs_mask[...,None])
@@ -129,8 +142,10 @@ plt.title('OVS Sensitivity Maps - Low Res Img')
 Smaps2 = espirit(y_com1[None,...], 6, 44, 0.02, 0.95)
 Smaps2 = Smaps2[0,:,:,:,0]
 Smaps2_mask = Smaps2 * (1 - ovs_mask[...,None])
-
-Smaps2_diff = espirit((y_com1-y_background)[None,...], 6, 44, 0.02, 0.95)
+# ovs mask
+# Smaps2_diff = espirit((y_com1-y_background)[None,...], 6, 44, 0.02, 0.95)
+# heart mask
+Smaps2_diff = espirit((y_com1-y_background)[None,...], 14, 44, 0.02, 0.95)
 Smaps2_diff = Smaps2_diff[0,:,:,:,0]
 
 """
@@ -166,7 +181,6 @@ plt.axis('off')
 plt.title('OVS Sensitivity Maps - Phase')
 """
 
-
 """
 # %% results with low resolution img Smaps
 # no OVS processing
@@ -184,7 +198,7 @@ plt.title('Results for low res img Smaps'); plt.axis('off')
 """
 
 
-# %% results with espirit Smaps
+# %% results with cgsense
 # no OVS processing
 cg_sense = sf.cgsense(y1, Smaps2, acc_mask)
 # OVS from k-space
@@ -198,8 +212,24 @@ background = im_composite * ovs_mask * 0
 figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
 plt.title('Results for espirit Smaps'); plt.axis('off')
 
+# figure = plt.figure(); plt.imshow(np.log(np.abs(np.concatenate((sf.im_to_kspace(cg_sense),sf.im_to_kspace(cg_sense_OVS),sf.im_to_kspace(cg_sense_mask),sf.im_to_kspace(cg_sense_diff)), axis=1))), cmap="gray", vmax=10); plt.axis('off')
 
-figure = plt.figure(); plt.imshow(np.log(np.abs(np.concatenate((sf.im_to_kspace(cg_sense),sf.im_to_kspace(cg_sense_OVS),sf.im_to_kspace(cg_sense_mask),sf.im_to_kspace(cg_sense_diff)), axis=1))), cmap="gray", vmax=10); plt.axis('off')
+
+# %% results with sense
+# no OVS processing
+sense = sf.sense(y1, Smaps2)
+# OVS from k-space
+sense_OVS = sf.sense(y1_diff, Smaps2)
+# OVS from k-space and calibration in image space
+sense_mask = sf.sense(y1_diff, Smaps2_mask)
+# OVS from k-space and calibration in k-space 
+sense_diff = sf.sense(y1_diff, Smaps2_diff)
+
+background = im_composite * ovs_mask * 0
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((sense,sense_OVS+background,sense_mask+background,sense_diff+background), axis=1)), cmap="gray", vmax=700); plt.axis('off')
+plt.title('Results for espirit Smaps'); plt.axis('off')
+
+# figure = plt.figure(); plt.imshow(np.log(np.abs(np.concatenate((sf.im_to_kspace(sense),sf.im_to_kspace(sense_OVS),sf.im_to_kspace(sense_mask),sf.im_to_kspace(sense_diff)), axis=1))), cmap="gray", vmax=10); plt.axis('off')
 
 
 # %% Condition number check
@@ -224,27 +254,29 @@ for i in np.arange(y.shape[0]):
     con_num[2,i] = np.linalg.cond(np.matmul(A, np.conj(A).T))
 print(f'Condition numbers for Smaps: {con_num[2,0]:.2e}, {con_num[2,1]:.2e} and {con_num[2,2]:.2e}')
 
+
 # %% g-factor maps
-gmap = sf.gfactor_MC(Smaps2,8)
-gmap_mask = sf.gfactor_MC(Smaps2_mask,8)
-gmap_diff = sf.gfactor_MC(Smaps2_diff,8)
+gmap = sf.gfactor_MC(Smaps2)
+gmap_mask = sf.gfactor_MC(Smaps2_mask)
+gmap_diff = sf.gfactor_MC(Smaps2_diff)
+
+gmax = np.max(gmap)
 
 figure = plt.figure()
 plt.subplot(1,3,1)
-plt.imshow(np.abs(gmap),cmap="turbo",vmax=7)
+plt.imshow(np.abs(gmap),cmap="turbo",vmax=gmax)
 plt.axis("off")
 plt.title("g-factor map of full sens map")
 plt.subplot(1,3,2)
-plt.imshow(np.abs(gmap_mask),cmap="turbo",vmax=7)
+plt.imshow(np.abs(gmap_mask),cmap="turbo",vmax=gmax)
 plt.axis("off")
 plt.title("g-factor map of masked sens map")
 plt.subplot(1,3,3)
-plt.imshow(np.abs(gmap_diff),cmap="turbo",vmax=7)
+plt.imshow(np.abs(gmap_diff),cmap="turbo",vmax=gmax)
 plt.axis("off")
 plt.title("g-factor map of ovs sens map")
 plt.colorbar()
 
 
-
-
+    
 

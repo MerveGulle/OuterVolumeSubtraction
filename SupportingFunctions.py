@@ -163,10 +163,10 @@ def grappa(kspace, kernel, time_frame, R=4, Kx=5):
     Nx, Ny, Nc = kspace.shape
     shift = np.mod(time_frame, R)
     Nl = np.mod(Ny-shift-1, R)
-    ACS = np.zeros(((Nx-Kx+1)*((Ny-R)//R), Kx*2*Nc), dtype=complex)
+    ACS = np.zeros(((Nx-Kx+1)*(Ny//R-1), Kx*2*Nc), dtype=complex)
     for x in np.arange(Nx-Kx+1):
-        for y in np.arange((Ny-R)//R):
-            ACS[x*((Ny-R)//R)+y] = kspace[x:x+Kx,[y*R+shift,y*R+R+shift],:].reshape(1,-1)
+        for y in np.arange(Ny//R-1):
+            ACS[x*(Ny//R-1)+y] = kspace[x:x+Kx,[y*R+shift,y*R+R+shift],:].reshape(1,-1)
     kspace_new = np.copy(kspace)
     for y in np.arange(R-1):
         for c in np.arange(Nc):

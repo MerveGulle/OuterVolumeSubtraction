@@ -1,4 +1,4 @@
-realtime_data.mat
-realtime_data_small.mat
+*.gif
+*.mat
 *.png
 /Results

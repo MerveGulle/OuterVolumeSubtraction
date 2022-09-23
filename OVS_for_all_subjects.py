@@ -105,6 +105,56 @@ plt.title('OVS zerofilled image'); plt.axis('off')
 figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1)), cmap="gray"); plt.axis('off') 
 plt.title('zerofilled image'); plt.axis('off')
 """
-    
-    
+
+
+# %% Generate coil maps with espirit
+# k: kspace kernel size
+# r: calibration region size
+if (mask_type == "only_heart"):
+    k = 14
+elif (mask_type == "outer_volume"):
+    k = 6
+# full smaps
+Smaps = espirit(y_com1[None,...], 6, 44, 0.02, 0.95)
+Smaps = Smaps[0,:,:,:,0]
+# masked smaps
+Smaps_mask = Smaps * (1 - ovs_mask[...,None])
+# outer volume signal subtracted smaps
+Smaps_diff = espirit((y_com1-y_background)[None,...], k, 44, 0.02, 0.95)
+Smaps_diff = Smaps_diff[0,:,:,:,0]
+
+coils_to_visualize = np.array([0,4,8,12,16,20,24,28])
+
+"""
+figure = plt.figure();
+plt.imshow(np.abs(Smaps[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray", vmax = 0.5); 
+plt.axis('off')
+plt.title('Full Sensitivity Maps - Amplitude')
+
+figure = plt.figure(); 
+plt.imshow(np.abs(Smaps_mask[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray", vmax = 0.5); 
+plt.axis('off') 
+plt.title('Masked Sensitivity Maps - Amplitude')
+
+figure = plt.figure(); 
+plt.imshow(np.abs(Smaps_diff[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray", vmax = 0.5); 
+plt.axis('off') 
+plt.title('OVS Sensitivity Maps - Amplitude')
+
+
+figure = plt.figure();
+plt.imshow(np.angle(Smaps[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray"); 
+plt.axis('off')
+plt.title('Full Sensitivity Maps - Phase')
+
+figure = plt.figure(); 
+plt.imshow(np.angle(Smaps_mask[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray"); 
+plt.axis('off') 
+plt.title('Masked Sensitivity Maps - Phase')
+
+figure = plt.figure(); 
+plt.imshow(np.angle(Smaps_diff[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray"); 
+plt.axis('off')  
+plt.title('OVS Sensitivity Maps - Phase')
+"""  
     

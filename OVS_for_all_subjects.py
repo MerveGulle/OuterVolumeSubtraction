@@ -4,17 +4,17 @@ import mat73
 import matplotlib.pyplot as plt
 from espirit import espirit
 from scipy.io import loadmat
-from scipy.io import savemat
+# from scipy.io import savemat
 
 
 # %% Hyperparameters
 mask_type = "only_heart"
-# mask_type = "outer_volume"
+# mask_type = only_heart or outer_volume
+subject_number = 3
 
 
 # %% Data Loading
 # Load one slice data
-subject_number = 3
 filename = "subject" + str(subject_number) + ".mat"
 realtime_data = mat73.loadmat(filename)
 # Images for each time frame, created with TGRAPPA --> [Nx(full), Ny(full), Ndyn]
@@ -39,6 +39,7 @@ plt.suptitle("acquired data with R=4",fontsize=12)
 """
 
 # %% images for the first 24 time frames
+"""
 num_img = 24
     
 figure = plt.figure(figsize=(15,12))
@@ -47,7 +48,7 @@ for tf in np.arange(num_img):
     plt.imshow(np.abs(im_tgrappa_full[123:213,23:103,tf]),cmap="gray",vmax=0.2)
     plt.title('TF #'+f'{tf+1}',fontsize=12)
     plt.axis("off")
-    
+"""
 
 # %% Cardiac contraction : time frame = 22 (Ndyn=21)
 TF = 21
@@ -157,4 +158,28 @@ plt.imshow(np.angle(Smaps_diff[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*N
 plt.axis('off')  
 plt.title('OVS Sensitivity Maps - Phase')
 """  
-    
+  
+
+# %% results with cgsense
+# no OVS processing
+cg_sense = sf.cgsense(y1, Smaps, acc_mask)
+# OVS from k-space
+cg_sense_OVS = sf.cgsense(y1_diff, Smaps, acc_mask)
+# OVS from k-space and calibration in image space
+cg_sense_mask = sf.cgsense(y1_diff, Smaps_mask, acc_mask)
+# OVS from k-space and calibration in k-space 
+cg_sense_diff = sf.cgsense(y1_diff, Smaps_diff, acc_mask)
+
+background = im_composite * ovs_mask
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=2000); plt.axis('off')
+plt.title('Results for CG-SENSE'); plt.axis('off')
+
+
+
+
+
+
+
+
+
+  

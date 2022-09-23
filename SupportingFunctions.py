@@ -15,14 +15,26 @@ def A(x, Smaps, mask):
 def AT(x, Smaps):
     return np.sum(kspace_to_im(x)*np.conj(Smaps), 2)
 
-def cgsense(kspace,Smaps,mask,max_iter=50):
+def cgsense(kspace,Smaps,mask,max_iter=30):
     a = AT(kspace,Smaps)
     p = np.copy(a)
     r_now = np.copy(a)
     xn = np.zeros_like(a)
     for i in np.arange(max_iter):
+        # q = (EHE)p
+        q = AT(A(p,Smaps,mask),Smaps)
+        # rr_pq = r'r/p'q
+        rr_pq = np.sum(r_now*np.conj(r_now))/np.sum(q*np.conj(p))
+        xn = xn + rr_pq * p
+        r_next = r_now - rr_pq * q
+        # p = r_next + r_next'r_next/r_now'r_now
+        p = r_next + (np.sum(r_next*np.conj(r_next))/np.sum(r_now*np.conj(r_now))) * p
+        r_now = np.copy(r_next)
+    return xn
+
+"""
         delta = np.sum(r_now*np.conj(r_now))/np.sum(a*np.conj(a))
-        if delta > 1e-4:
+        if delta > 1e-5:
             # q = (EHE)p
             q = AT(A(p,Smaps,mask),Smaps)
             # rr_pq = r'r/p'q
@@ -34,7 +46,7 @@ def cgsense(kspace,Smaps,mask,max_iter=50):
             r_now = np.copy(r_next)
         else:
             break
-    return xn
+"""
 
 
 def ADMM(kspace,Smaps,mask,mu=1e-2,lmbda=1,max_iter=20,cg_max_iter=8):

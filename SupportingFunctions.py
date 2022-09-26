@@ -21,6 +21,9 @@ def cgsense(kspace,Smaps,mask,max_iter=30):
     r_now = np.copy(a)
     xn = np.zeros_like(a)
     for i in np.arange(max_iter):
+        delta = np.sum(r_now*np.conj(r_now))/np.sum(a*np.conj(a))
+        if delta < 1e-5:
+            break
         # q = (EHE)p
         q = AT(A(p,Smaps,mask),Smaps)
         # rr_pq = r'r/p'q
@@ -32,32 +35,16 @@ def cgsense(kspace,Smaps,mask,max_iter=30):
         r_now = np.copy(r_next)
     return xn
 
-"""
-        delta = np.sum(r_now*np.conj(r_now))/np.sum(a*np.conj(a))
-        if delta > 1e-5:
-            # q = (EHE)p
-            q = AT(A(p,Smaps,mask),Smaps)
-            # rr_pq = r'r/p'q
-            rr_pq = np.sum(r_now*np.conj(r_now))/np.sum(q*np.conj(p))
-            xn = xn + rr_pq * p
-            r_next = r_now - rr_pq * q
-            # p = r_next + r_next'r_next/r_now'r_now
-            p = r_next + (np.sum(r_next*np.conj(r_next))/np.sum(r_now*np.conj(r_now))) * p
-            r_now = np.copy(r_next)
-        else:
-            break
-"""
 
-
-def ADMM(kspace,Smaps,mask,mu=1e-2,lmbda=1,max_iter=20,cg_max_iter=8):
+def ADMM(kspace, Smaps, mask, lmbda , mu=1e-2, max_iter=20,cg_max_iter=10):
     # initialization
     xj = rssq(kspace_to_im(kspace))
     SHFHd = AT(kspace, Smaps)
     nu1j = np.zeros_like(xj)
     for j in np.arange(max_iter):
-        # update u1(j)
-        u1j = ((xj+nu1j)/(np.abs(xj+nu1j)+1e-30)) * np.maximum(np.abs(xj+nu1j)-lmbda/mu,0)
-        # update x(j)
+        # update u1(j) - sparsity term
+        u1j = np.divide((xj+nu1j), np.abs(xj+nu1j),where=(np.abs(xj+nu1j)!=0)) * np.maximum(np.abs(xj+nu1j)-lmbda/mu,0)
+        # update x(j) = data consistency term
         a = SHFHd + mu*(u1j-nu1j)
         p = np.copy(a)
         r_now = np.copy(a)
@@ -185,6 +172,5 @@ def grappa(kspace, kernel, time_frame, R=4, Kx=5):
             kspace_new[(Kx-1)//2:-(Kx-1)//2,y+1+shift:Ny-Nl-R+y+1:R,c] = np.matmul(ACS,kernel[y,c].reshape(-1,1)).reshape(Nx-Kx+1,-1)
     image = rssq(kspace_to_im(kspace_new))
     return image
-
 
 

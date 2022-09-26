@@ -8,20 +8,23 @@ from scipy.io import loadmat
 
 
 # %% Hyperparameters
-mask_type = "only_heart"
-# mask_type = only_heart or outer_volume
-subject_number = 3
+mask_type = "no_diaphragm"
+# mask_type = only_heart or outer_volume or no_diaphragm
+subject_number = 1
+slice_number = 4
 
 
 # %% Data Loading
 # Load one slice data
-filename = "subject" + str(subject_number) + ".mat"
+filename = "subject_" + str(subject_number) + "_slice_" + str(slice_number) + ".mat"
 realtime_data = mat73.loadmat(filename)
 # Images for each time frame, created with TGRAPPA --> [Nx(full), Ny(full), Ndyn]
 _, im_tgrappa_full = list(realtime_data.items())[0]
+im_tgrappa_full = im_tgrappa_full[:,:,0:40]
 # Kspace data (partial) --> [Nx(full), Ny(full), Nc, Ndyn]
 _, datas = list(realtime_data.items())[1]
-datas = datas[68:320,0:72,:,:]*1e6
+datas = datas[:,:,:,0:40]
+datas = datas[68:320,0:72,:,0:40]*1e6
 datas = datas.astype('complex64')
 
 Nx = datas.shape[0]             # num of RO pixels (vertical)
@@ -45,13 +48,13 @@ num_img = 24
 figure = plt.figure(figsize=(15,12))
 for tf in np.arange(num_img):
     plt.subplot(3,num_img//3,tf+1)
-    plt.imshow(np.abs(im_tgrappa_full[123:213,23:103,tf]),cmap="gray",vmax=0.2)
+    plt.imshow(np.abs(im_tgrappa_full[113:203,33:113,tf]),cmap="gray",vmax=0.2)
     plt.title('TF #'+f'{tf+1}',fontsize=12)
     plt.axis("off")
 """
 
-# %% Cardiac contraction : time frame = 22 (Ndyn=21)
-TF = 21
+# %% Cardiac contraction : time frame = 6 (Ndyn=5)
+TF = 5
 shift = np.mod(TF, 8)
 
 
@@ -92,7 +95,7 @@ plt.title('composite image'); plt.axis('off')
 
 
 # %% Subtraction the outer volume signal
-filename = str(mask_type) + "_subject" + str(subject_number) + ".mat"
+filename = str(mask_type) + "_subject_" + str(subject_number) + "_slice_" + str(slice_number) + ".mat"
 ovs_mask = loadmat(filename)['target_mask']==1
 # subtact these out from the data
 y_com1 = y_com[:,:,:,TF]
@@ -113,6 +116,8 @@ plt.title('zerofilled image'); plt.axis('off')
 # r: calibration region size
 if (mask_type == "only_heart"):
     k = 14
+elif (mask_type == "no_diaphragm"):
+    k = 20
 elif (mask_type == "outer_volume"):
     k = 6
 # full smaps
@@ -175,11 +180,24 @@ figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+b
 plt.title('Results for CG-SENSE'); plt.axis('off')
 
 
+# %% results with admm
+lmbda = np.max(np.abs(cg_sense)) * 1e-3
+# no OVS processing
+admm = sf.ADMM(y1, Smaps, acc_mask, lmbda)
+# OVS from k-space
+admm_OVS = sf.ADMM(y1_diff, Smaps, acc_mask, lmbda)
+# OVS from k-space and calibration in image space
+admm_mask = sf.ADMM(y1_diff, Smaps_mask, acc_mask, lmbda)
+# OVS from k-space and calibration in k-space 
+admm_diff = sf.ADMM(y1_diff, Smaps_diff, acc_mask, lmbda)
+
+background = im_composite * ovs_mask
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((admm,admm_OVS+background,admm_mask+background,admm_diff+background), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
+plt.title('Results for ADMM'); plt.axis('off')
 
 
-
-
-
-
+# %%
+admm = sf.ADMM(datas[:,:,:,TF], Smaps, np.abs(datas[:,:,0,TF])!=0)
+figure = plt.figure(); plt.imshow(np.abs(admm),cmap="gray",vmax=1800)
 
   

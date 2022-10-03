@@ -62,7 +62,7 @@ shift = np.mod(TF, 8)
 # acceleration mask
 acc_mask = np.zeros((Nx,Ny), dtype=bool)
 acc_mask[:,shift::8] = True
-acc_mask[:,Ny-4:Ny] = True
+acc_mask[:,Ny-4:Ny] = True 
 # zerofilled image:x0
 x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,TF]*acc_mask[...,None]))
 """

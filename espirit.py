@@ -20,8 +20,12 @@ def espirit(X, k, r, t, c):
       maps: This is the ESPIRiT operator. It will have dimensions (sx, sy, sz, nc, nc) with (sx, sy, sz, :, idx)
             being the idx'th set of ESPIRiT maps.
     """
-    cy = 92
+    cy = 91
     cz = 46
+    
+    Nx = 1
+    Ny = 252
+    Nz = 72
     
     sx = np.shape(X)[0]
     sy = np.shape(X)[1]
@@ -90,7 +94,12 @@ def espirit(X, k, r, t, c):
                 for ldx in range(0, 1):
                     if (s[ldx]**2 > c):
                         maps[idx, jdx, kdx, :, ldx] = u[:, ldx]
-
+    
+    zz,yy= np.meshgrid(np.linspace(0,Nz-1,Nz),np.linspace(0,Ny-1,Ny))
+    yy = np.exp(1j*2*np.pi*(cy - Ny//2 + 1)/Ny*yy)
+    zz = np.exp(1j*2*np.pi*(cz - Nz//2 + 1)/Nz*zz)
+    maps = maps * yy[None,...,None,None] * zz[None,...,None,None]
+    
     return maps
 
 def espirit_proj(x, esp):

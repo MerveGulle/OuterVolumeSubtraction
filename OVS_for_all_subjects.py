@@ -8,9 +8,9 @@ from scipy.io import loadmat
 
 
 # %% Hyperparameters
-mask_type = "no_diaphragm"
+mask_type = "only_heart"
 # mask_type = only_heart or outer_volume or no_diaphragm
-subject_number = 1
+subject_number = 3
 slice_number = 4
 
 
@@ -32,9 +32,9 @@ Ny = datas.shape[1]             # num of PE pixels (horizontal)
 Nc = datas.shape[2]             # num of coils
 Ndyn = datas.shape[3]           # num of time frames
 """
-figure = plt.figure()
-for tf in np.arange(8):
-    plt.subplot(1,8,tf+1)
+figure = plt.figure(figsize=(8,4))
+for tf in np.arange(4):
+    plt.subplot(1,4,tf+1)
     plt.imshow(np.log(np.abs(datas[:,:,0,tf])+1),cmap="gray")
     plt.title('TF #'+f'{tf+1}',fontsize=10)
     plt.axis("off")
@@ -48,13 +48,13 @@ num_img = 24
 figure = plt.figure(figsize=(15,12))
 for tf in np.arange(num_img):
     plt.subplot(3,num_img//3,tf+1)
-    plt.imshow(np.abs(im_tgrappa_full[113:203,33:113,tf]),cmap="gray",vmax=0.2)
+    plt.imshow(np.abs(im_tgrappa_full[145:185,40:90,tf]),cmap="gray",vmax=0.1)
     plt.title('TF #'+f'{tf+1}',fontsize=12)
     plt.axis("off")
 """
 
-# %% Cardiac contraction : time frame = 6 (Ndyn=5)
-TF = 5
+# %% Cardiac contraction : time frame = 7 (Ndyn=6)
+TF = 6
 shift = np.mod(TF, 8)
 
 
@@ -62,6 +62,7 @@ shift = np.mod(TF, 8)
 # acceleration mask
 acc_mask = np.zeros((Nx,Ny), dtype=bool)
 acc_mask[:,shift::8] = True
+acc_mask[:,Ny-4:Ny] = True
 # zerofilled image:x0
 x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,TF]*acc_mask[...,None]))
 """
@@ -89,20 +90,21 @@ plt.suptitle("composite kspace",fontsize=12)
 x_com = sf.rssq(sf.kspace_to_im(y_com))
 im_composite = x_com[:,:,TF]
 """
-figure = plt.figure(); plt.imshow(np.abs(im_composite), cmap="gray", vmax=2000); plt.axis('off')
+figure = plt.figure(figsize=(2,6)); plt.imshow(np.abs(im_composite), cmap="gray", vmax=2000); plt.axis('off')
 plt.title('composite image'); plt.axis('off')
 """
 
 
 # %% Subtraction the outer volume signal
 filename = str(mask_type) + "_subject_" + str(subject_number) + "_slice_" + str(slice_number) + ".mat"
-ovs_mask = loadmat(filename)['target_mask']==1
+ovs_mask = loadmat(filename)['target_mask']
 # subtact these out from the data
 y_com1 = y_com[:,:,:,TF]
 y_background = sf.im_to_kspace(sf.kspace_to_im(y_com1)*ovs_mask[...,None])
 # subtract out background
 y1 = datas[:,:,:,TF]*acc_mask[...,None]
 y1_diff = y1 - y_background*acc_mask[...,None]
+y1_diff[:,Ny-4:Ny] = 0
 """
 figure = plt.figure(); plt.imshow(sf.rssq(sf.kspace_to_im(y1_diff)), cmap="gray"); plt.axis('off')
 plt.title('OVS zerofilled image'); plt.axis('off')
@@ -117,16 +119,18 @@ plt.title('zerofilled image'); plt.axis('off')
 if (mask_type == "only_heart"):
     k = 14
 elif (mask_type == "no_diaphragm"):
-    k = 20
+    k = 16
 elif (mask_type == "outer_volume"):
-    k = 6
+    k = 8
 # full smaps
-Smaps = espirit(y_com1[None,...], 6, 44, 0.02, 0.95)
+Smaps = espirit(y_com1[None,...], 8, 44, 0.02, 0.95)
 Smaps = Smaps[0,:,:,:,0]
 # masked smaps
 Smaps_mask = Smaps * (1 - ovs_mask[...,None])
 # outer volume signal subtracted smaps
-Smaps_diff = espirit((y_com1-y_background)[None,...], k, 44, 0.02, 0.95)
+y_com_diff = y_com1-y_background
+y_com_diff[:,Ny-4:Ny] = 0
+Smaps_diff = espirit((y_com_diff)[None,...], k, 44, 0.02, 0.95)
 Smaps_diff = Smaps_diff[0,:,:,:,0]
 
 coils_to_visualize = np.array([0,4,8,12,16,20,24,28])
@@ -176,23 +180,22 @@ cg_sense_mask = sf.cgsense(y1_diff, Smaps_mask, acc_mask)
 cg_sense_diff = sf.cgsense(y1_diff, Smaps_diff, acc_mask)
 
 background = im_composite * ovs_mask
-figure = plt.figure(); plt.imshow(np.abs(np.concatenate((cg_sense,cg_sense_OVS+background,cg_sense_mask+background,cg_sense_diff+background), axis=1)), cmap="gray", vmax=2000); plt.axis('off')
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((np.abs(cg_sense),np.abs(cg_sense_OVS)+background,np.abs(cg_sense_mask)+background,np.abs(cg_sense_diff)+background), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
 plt.title('Results for CG-SENSE'); plt.axis('off')
 
 
 # %% results with admm
-lmbda = np.max(np.abs(cg_sense)) * 1e-3
 # no OVS processing
-admm = sf.ADMM(y1, Smaps, acc_mask, lmbda)
+admm = sf.ADMM(y1, Smaps, acc_mask, np.max(np.abs(sf.haar2(cg_sense))))
 # OVS from k-space
-admm_OVS = sf.ADMM(y1_diff, Smaps, acc_mask, lmbda)
+admm_OVS = sf.ADMM(y1_diff, Smaps, acc_mask, np.max(np.abs(sf.haar2(cg_sense_OVS))))
 # OVS from k-space and calibration in image space
-admm_mask = sf.ADMM(y1_diff, Smaps_mask, acc_mask, lmbda)
+admm_mask = sf.ADMM(y1_diff, Smaps_mask, acc_mask, np.max(np.abs(sf.haar2(cg_sense_mask))))
 # OVS from k-space and calibration in k-space 
-admm_diff = sf.ADMM(y1_diff, Smaps_diff, acc_mask, lmbda)
+admm_diff = sf.ADMM(y1_diff, Smaps_diff, acc_mask, np.max(np.abs(sf.haar2(cg_sense_diff))))
 
 background = im_composite * ovs_mask
-figure = plt.figure(); plt.imshow(np.abs(np.concatenate((admm,admm_OVS+background,admm_mask+background,admm_diff+background), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((np.abs(admm),np.abs(admm_OVS)+background,np.abs(admm_mask)+background,np.abs(admm_diff)+background), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
 plt.title('Results for ADMM'); plt.axis('off')
 
 

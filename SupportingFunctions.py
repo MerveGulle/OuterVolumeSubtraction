@@ -70,7 +70,7 @@ def ADMM(kspace, Smaps, mask, cgmax , mu=1e-1, max_iter=20,cg_max_iter=10):
 
 
 # ADMM with sparsity in wavelet domain
-def ADMM(kspace, Smaps, mask, cgmax , mu=1e-1, max_iter=20,cg_max_iter=10):
+def ADMM(kspace, Smaps, mask, cgmax , mu=0.1, max_iter=20,cg_max_iter=10):
     lmbda = mu * cgmax * 1e-3
     # initialization
     xj = rssq(kspace_to_im(kspace))
@@ -87,7 +87,7 @@ def ADMM(kspace, Smaps, mask, cgmax , mu=1e-1, max_iter=20,cg_max_iter=10):
         xn = np.zeros_like(a)
         for i in np.arange(cg_max_iter):
             # q = (SHFHFS+muRHR)p
-            q = AT(A(p,Smaps,mask),Smaps) + mu*ihaar2(haar2(p))
+            q = AT(A(p,Smaps,mask),Smaps) + mu*ihaar2(haar2(p))f
             # rr_pq = r'r/p'q
             rr_pq = np.sum(r_now*np.conj(r_now))/np.sum(q*np.conj(p))
             xn = xn + rr_pq * p
@@ -100,26 +100,6 @@ def ADMM(kspace, Smaps, mask, cgmax , mu=1e-1, max_iter=20,cg_max_iter=10):
         nu1j = nu1j - (u1j - rj)
     return xj
 
-"""
-# 2D Haar transform
-def haar2(X):
-    cA, (cH, cV, cD) = pywt.dwt2(X, 'haar')
-    row1  = np.concatenate((cA,cH),axis=1)
-    row2  = np.concatenate((cV,cD),axis=1)
-    coeff = np.concatenate((row1,row2),axis=0)
-    
-    return coeff
-
-def ihaar2(X):
-    Nx, Ny = X.shape
-    cA = X[0:Nx//2, 0:Ny//2]
-    cH = X[Nx//2:Nx, 0:Ny//2]
-    cV = X[Nx//2:Nx, 0:Ny//2]
-    cD = X[Nx//2:Nx, Ny//2:Ny]
-    coeff = pywt.idwt2((cA, (cH, cV, cD)), 'haar')
-
-    return coeff
-"""
 
 def haar2(X):
     A = X[0::2, 0::2]

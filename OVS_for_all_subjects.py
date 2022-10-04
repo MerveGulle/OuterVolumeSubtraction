@@ -54,7 +54,7 @@ for tf in np.arange(num_img):
 """
 
 # %% Cardiac contraction : time frame = 7 (Ndyn=6)
-TF = 6
+TF = 0
 shift = np.mod(TF, 8)
 
 
@@ -167,7 +167,11 @@ plt.imshow(np.angle(Smaps_diff[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*N
 plt.axis('off')  
 plt.title('OVS Sensitivity Maps - Phase')
 """  
-  
+
+# %% Reference Images
+cg_sense_ref = sf.cgsense(datas[:,:,:,TF], Smaps, np.abs(datas[:,:,0,TF])!=0)
+# figure = plt.figure(); plt.imshow(np.abs(cg_sense_ref),cmap="gray",vmax=1800)
+
 
 # %% results with cgsense
 # no OVS processing
@@ -180,7 +184,7 @@ cg_sense_mask = sf.cgsense(y1_diff, Smaps_mask, acc_mask)
 cg_sense_diff = sf.cgsense(y1_diff, Smaps_diff, acc_mask)
 
 background = im_composite * ovs_mask
-figure = plt.figure(); plt.imshow(np.abs(np.concatenate((np.abs(cg_sense),np.abs(cg_sense_OVS)+background,np.abs(cg_sense_mask)+background,np.abs(cg_sense_diff)+background), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((np.abs(cg_sense),np.abs(cg_sense_OVS)+background,np.abs(cg_sense_mask)+background,np.abs(cg_sense_diff)+background,np.abs(cg_sense_ref)), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
 plt.title('Results for CG-SENSE'); plt.axis('off')
 
 
@@ -195,12 +199,9 @@ admm_mask = sf.ADMM(y1_diff, Smaps_mask, acc_mask, np.max(np.abs(sf.haar2(cg_sen
 admm_diff = sf.ADMM(y1_diff, Smaps_diff, acc_mask, np.max(np.abs(sf.haar2(cg_sense_diff))))
 
 background = im_composite * ovs_mask
-figure = plt.figure(); plt.imshow(np.abs(np.concatenate((np.abs(admm),np.abs(admm_OVS)+background,np.abs(admm_mask)+background,np.abs(admm_diff)+background), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
+figure = plt.figure(); plt.imshow(np.abs(np.concatenate((np.abs(admm),np.abs(admm_OVS)+background,np.abs(admm_mask)+background,np.abs(admm_diff)+background,np.abs(cg_sense_ref)), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
 plt.title('Results for ADMM'); plt.axis('off')
 
 
-# %%
-admm = sf.ADMM(datas[:,:,:,TF], Smaps, np.abs(datas[:,:,0,TF])!=0)
-figure = plt.figure(); plt.imshow(np.abs(admm),cmap="gray",vmax=1800)
 
   

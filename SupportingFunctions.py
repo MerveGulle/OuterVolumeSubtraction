@@ -1,5 +1,6 @@
 import numpy as np
 import pywt
+from scipy import signal
 
 def im_to_kspace (image, axis=[0,1]):
     return np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(image, axes=axis), axes=axis, norm='ortho'), axes=axis)
@@ -70,8 +71,8 @@ def ADMM(kspace, Smaps, mask, cgmax , mu=1e-1, max_iter=20,cg_max_iter=10):
 
 
 # ADMM with sparsity in wavelet domain
-def ADMM(kspace, Smaps, mask, cgmax , mu=0.1, max_iter=20,cg_max_iter=10):
-    lmbda = mu * cgmax * 1e-3
+def ADMM(kspace, Smaps, mask, cgmax , mu=0.05, max_iter=20,cg_max_iter=10):
+    lmbda = mu * cgmax * 1e-3 
     # initialization
     xj = rssq(kspace_to_im(kspace))
     SHFHd = AT(kspace, Smaps)
@@ -87,7 +88,7 @@ def ADMM(kspace, Smaps, mask, cgmax , mu=0.1, max_iter=20,cg_max_iter=10):
         xn = np.zeros_like(a)
         for i in np.arange(cg_max_iter):
             # q = (SHFHFS+muRHR)p
-            q = AT(A(p,Smaps,mask),Smaps) + mu*ihaar2(haar2(p))f
+            q = AT(A(p,Smaps,mask),Smaps) + mu*ihaar2(haar2(p))
             # rr_pq = r'r/p'q
             rr_pq = np.sum(r_now*np.conj(r_now))/np.sum(q*np.conj(p))
             xn = xn + rr_pq * p
@@ -236,3 +237,12 @@ def grappa(kspace, kernel, time_frame, R=4, Kx=5):
     return image
 
 
+def coilMaps(kspace, ACS, center):
+    N = 48
+    eps = 1e-16
+    tukeywin2D = signal.windows.tukey(N,0.9)[:,None]*signal.windows.tukey(ACS,0.9)[None,:]
+    k_low = np.zeros_like(kspace)
+    k_low[center[0]-N//2:center[0]+N//2, center[1]-ACS//2:center[1]+ACS//2] = kspace[center[0]-N//2:center[0]+N//2, center[1]-ACS//2:center[1]+ACS//2] * tukeywin2D[...,None]
+    img_low = kspace_to_im(k_low)
+    maps = img_low / rssq(img_low + eps)[...,None]
+    return maps

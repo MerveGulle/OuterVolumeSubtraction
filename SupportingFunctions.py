@@ -12,12 +12,18 @@ def rssq (x):
     return np.sqrt(np.sum(np.abs(x)**2,2))
 
 def A(x, Smaps, mask):
-    return im_to_kspace(x[...,None]*Smaps)*mask[...,None]
+    if len(Smaps.shape)==3:
+        return im_to_kspace(x[...,None]*Smaps)*mask[...,None]
+    elif len(Smaps.shape)==4:
+        return im_to_kspace(np.sum(x[:,:,None,:]*Smaps,3))*mask[...,None]
 
 def AT(x, Smaps):
-    return np.sum(kspace_to_im(x)*np.conj(Smaps), 2)
+    if len(Smaps.shape)==3:
+        return np.sum(kspace_to_im(x)*np.conj(Smaps), 2)
+    if len(Smaps.shape)==4:
+        return np.sum(kspace_to_im(x)[...,None]*np.conj(Smaps), 2)
 
-def cgsense(kspace,Smaps,mask,max_iter=25):
+def cgsense(kspace,Smaps,mask,max_iter=25, lambd = 1e-3):
     a = AT(kspace,Smaps)
     p = np.copy(a)
     r_now = np.copy(a)
@@ -26,8 +32,8 @@ def cgsense(kspace,Smaps,mask,max_iter=25):
         delta = np.sum(r_now*np.conj(r_now))/np.sum(a*np.conj(a))
         if delta < 1e-5:
             break
-        # q = (EHE)p
-        q = AT(A(p,Smaps,mask),Smaps)
+        # q = (EHE + lambda*I)p
+        q = AT(A(p,Smaps,mask),Smaps) + lambd*p
         # rr_pq = r'r/p'q
         rr_pq = np.sum(r_now*np.conj(r_now))/np.sum(q*np.conj(p))
         xn = xn + rr_pq * p
@@ -193,9 +199,9 @@ def gfactor_MC(kspace, Smaps, R):
 """
 
 
-def sense(kspace, Smaps, R=8):
+def sense(kspace, Smaps, TF, R=8):
     Nx, Ny, Nc = Smaps.shape
-    kspace = kspace[:,np.abs(kspace[92,:,0])!=0,:]
+    kspace = kspace[:,np.mod(TF,R)::R,:]
     x0 = kspace_to_im(kspace)
     image = np.zeros((Nx, Ny), dtype=complex)
     Cy = Ny//R
@@ -232,9 +238,12 @@ def grappa(kspace, kernel, time_frame, R=4, Kx=5):
     kspace_new = np.copy(kspace)
     for y in np.arange(R-1):
         for c in np.arange(Nc):
+            # Ny = 72
             kspace_new[(Kx-1)//2:-(Kx-1)//2,y+1+shift:Ny-Nl-R+y+1:R,c] = np.matmul(ACS,kernel[y,c].reshape(-1,1)).reshape(Nx-Kx+1,-1)
+            # Ny = 68
+            # kspace_new[(Kx-1)//2:-(Kx-1)//2,y+1+shift:Ny-Nl+y+1:R,c] = np.matmul(ACS,kernel[y,c].reshape(-1,1)).reshape(Nx-Kx+1,-1)
     image = rssq(kspace_to_im(kspace_new))
-    return image
+    return image, kspace_new
 
 
 def coilMaps(kspace, ACS, center):
@@ -246,3 +255,4 @@ def coilMaps(kspace, ACS, center):
     img_low = kspace_to_im(k_low)
     maps = img_low / rssq(img_low + eps)[...,None]
     return maps
+

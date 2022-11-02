@@ -20,6 +20,7 @@ def espirit(X, k, r, t, c):
       maps: This is the ESPIRiT operator. It will have dimensions (sx, sy, sz, nc, nc) with (sx, sy, sz, :, idx)
             being the idx'th set of ESPIRiT maps.
     """
+    
     cy = 91
     cz = 46
     
@@ -38,7 +39,7 @@ def espirit(X, k, r, t, c):
     
     syt = (cy-r//2, cy+r//2) if (sy > 1) else (0, 1)
     szt = (cz-r//2, cz+r//2) if (sz > 1) else (0, 1)
-
+    
     
     # Extract calibration region.    
     C = X[sxt[0]:sxt[1], syt[0]:syt[1], szt[0]:szt[1], :].astype(np.complex64)
@@ -91,7 +92,7 @@ def espirit(X, k, r, t, c):
                 Gq = kerimgs[idx,jdx,kdx,:,:]
 
                 u, s, vh = np.linalg.svd(Gq, full_matrices=True)
-                for ldx in range(0, 1):
+                for ldx in range(0, 2):
                     if (s[ldx]**2 > c):
                         maps[idx, jdx, kdx, :, ldx] = u[:, ldx]
     

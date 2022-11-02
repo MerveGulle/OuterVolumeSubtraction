@@ -23,7 +23,7 @@ _, im_tgrappa_full = list(realtime_data.items())[0]
 im_tgrappa_full = im_tgrappa_full[:,:,0:40]
 # Kspace data (partial) --> [Nx(full), Ny(full), Nc, Ndyn]
 _, datas = list(realtime_data.items())[1]
-datas = datas[:,:,:,0:40]
+# datas = datas[:,:,:,0:40]*1e6
 datas = datas[68:320,0:72,:,0:40]*1e6
 datas = datas.astype('complex64')
 
@@ -48,10 +48,11 @@ num_img = 24
 figure = plt.figure(figsize=(15,12))
 for tf in np.arange(num_img):
     plt.subplot(3,num_img//3,tf+1)
-    plt.imshow(np.abs(im_tgrappa_full[145:185,40:90,tf]),cmap="gray",vmax=0.1)
+    plt.imshow(np.abs(im_tgrappa_full[:,:,tf]),cmap="gray",vmax=0.1)
     plt.title('TF #'+f'{tf+1}',fontsize=12)
     plt.axis("off")
 """
+
 
 # %% Cardiac contraction : time frame = 7 (Ndyn=6)
 TF = 0
@@ -62,7 +63,7 @@ shift = np.mod(TF, 8)
 # acceleration mask
 acc_mask = np.zeros((Nx,Ny), dtype=bool)
 acc_mask[:,shift::8] = True
-acc_mask[:,Ny-4:Ny] = True 
+acc_mask[:,68::] = True 
 # zerofilled image:x0
 x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,TF]*acc_mask[...,None]))
 """
@@ -123,7 +124,7 @@ elif (mask_type == "no_diaphragm"):
 elif (mask_type == "outer_volume"):
     k = 8
 # full smaps
-Smaps = espirit(y_com1[None,...], 8, 44, 0.02, 0.95)
+Smaps = espirit(y_com1[None,...], 8,44, 0.02, 0.95)
 Smaps = Smaps[0,:,:,:,0]
 # masked smaps
 Smaps_mask = Smaps * (1 - ovs_mask[...,None])
@@ -133,7 +134,7 @@ y_com_diff[:,Ny-4:Ny] = 0
 Smaps_diff = espirit((y_com_diff)[None,...], k, 44, 0.02, 0.95)
 Smaps_diff = Smaps_diff[0,:,:,:,0]
 
-coils_to_visualize = np.array([0,4,8,12,16,20,24,28])
+coils_to_visualize = np.array([0,4,8,12,16,20,24,28])+1
 
 """
 figure = plt.figure();
@@ -170,8 +171,12 @@ plt.title('OVS Sensitivity Maps - Phase')
 
 # %% Reference Images
 cg_sense_ref = sf.cgsense(datas[:,:,:,TF], Smaps, np.abs(datas[:,:,0,TF])!=0)
-# figure = plt.figure(); plt.imshow(np.abs(cg_sense_ref),cmap="gray",vmax=1800)
+figure = plt.figure(figsize=(2,6)); plt.imshow(np.abs(cg_sense_ref),cmap="gray",vmax=1800); 
+plt.axis('off'); plt.title('CG-SENSE, TF='+f'{TF+1}')
 
+sense_ref = sf.sense(datas[:,:,:,TF], Smaps, TF, R=4)
+figure = plt.figure(figsize=(2,6)); plt.imshow(np.abs(sense_ref),cmap="gray",vmax=900); 
+plt.axis('off'); plt.title('SENSE, TF='+f'{TF+1}')
 
 # %% results with cgsense
 # no OVS processing
@@ -183,9 +188,41 @@ cg_sense_mask = sf.cgsense(y1_diff, Smaps_mask, acc_mask)
 # OVS from k-space and calibration in k-space 
 cg_sense_diff = sf.cgsense(y1_diff, Smaps_diff, acc_mask)
 
-background = im_composite * ovs_mask
-figure = plt.figure(); plt.imshow(np.abs(np.concatenate((np.abs(cg_sense),np.abs(cg_sense_OVS)+background,np.abs(cg_sense_mask)+background,np.abs(cg_sense_diff)+background,np.abs(cg_sense_ref)), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
-plt.title('Results for CG-SENSE'); plt.axis('off')
+# %%
+background = cg_sense_ref * ovs_mask
+figure = plt.figure(figsize=(8,5))
+vmin = 0; vmax=1700
+plt.subplot(1,5,1)
+plt.imshow(np.abs(cg_sense), cmap='gray', vmin=vmin, vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'kspace_full\nSmaps_full', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.subplot(1,5,2)
+plt.imshow(np.abs(cg_sense_OVS+background), cmap='gray', vmin=vmin, vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'kspace_diff\nSmaps_full', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.subplot(1,5,3)
+plt.imshow(np.abs(cg_sense_mask+background), cmap='gray', vmin=vmin, vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'kspace_diff\nSmaps_mask', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.subplot(1,5,4)
+plt.imshow(np.abs(cg_sense_diff+background), cmap='gray', vmin=vmin, vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'kspace_diff\nSmaps_diff', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.subplot(1,5,5)
+plt.imshow(np.abs(cg_sense_ref), cmap='gray', vmin=vmin, vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'reference\nimage', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.suptitle('Results for CG-SENSE, Sub:'+f'{subject_number}'+', Slc:'+f'{slice_number}'+', TF:'+ f'{TF+1}', fontsize=14)
 
 
 # %% results with admm
@@ -198,10 +235,59 @@ admm_mask = sf.ADMM(y1_diff, Smaps_mask, acc_mask, np.max(np.abs(sf.haar2(cg_sen
 # OVS from k-space and calibration in k-space 
 admm_diff = sf.ADMM(y1_diff, Smaps_diff, acc_mask, np.max(np.abs(sf.haar2(cg_sense_diff))))
 
-background = im_composite * ovs_mask
-figure = plt.figure(); plt.imshow(np.abs(np.concatenate((np.abs(admm),np.abs(admm_OVS)+background,np.abs(admm_mask)+background,np.abs(admm_diff)+background,np.abs(cg_sense_ref)), axis=1)), cmap="gray", vmax=1800); plt.axis('off')
-plt.title('Results for ADMM'); plt.axis('off')
+# %%
+background = cg_sense_ref * ovs_mask
+figure = plt.figure(figsize=(8,5))
+vmax=1700
+plt.subplot(1,5,1)
+plt.imshow(np.abs(admm), cmap='gray', vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'kspace_full\nSmaps_full', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.subplot(1,5,2)
+plt.imshow(np.abs(admm_OVS+background), cmap='gray', vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'kspace_diff\nSmaps_full', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.subplot(1,5,3)
+plt.imshow(np.abs(admm_mask+background), cmap='gray', vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'kspace_diff\nSmaps_mask', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.subplot(1,5,4)
+plt.imshow(np.abs(admm_diff+background), cmap='gray', vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'kspace_diff\nSmaps_diff', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.subplot(1,5,5)
+plt.imshow(np.abs(cg_sense_ref), cmap='gray', vmax=vmax)
+ax = plt.gca()
+plt.text(0.5, 0.05, 'reference\nimage', color = 'white', 
+         horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
+plt.axis('off')
+plt.suptitle('Results for ADMM, Sub:'+f'{subject_number}'+', Slc:'+f'{slice_number}'+', TF:'+ f'{TF+1}', fontsize=14)
 
 
+# %% tgrappa test
+# acceleration mask
+acc_mask = np.zeros((Nx,Ny), dtype=bool)
+acc_mask[:,0::8] = True
 
-  
+N = 8
+imagesN = np.zeros_like(y_com[:,:,0,0:N])
+for tf in np.arange(N):
+    kernel = sf.kernel_cal(y_com[0:182,0:68,:,tf], R=8)
+    [imagesN[:,:,tf], kspace_new] = sf.grappa(datas[:,:,:,tf]*np.roll(acc_mask,tf,1)[:,:,None], kernel, tf, R=8)
+
+figure = plt.figure(figsize=(12,12))
+for tf in np.arange(N):
+    plt.subplot(1,N//1,tf+1)
+    plt.imshow(np.abs(imagesN[:,:,tf]),cmap="gray",vmax=1500)
+    plt.title('TF #'+f'{tf+1}',fontsize=12)
+    plt.axis("off")
+    
+

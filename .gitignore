@@ -1,4 +1,5 @@
 *.gif
 *.mat
 *.png
+*.h5
 /Results

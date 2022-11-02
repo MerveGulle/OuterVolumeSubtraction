@@ -290,4 +290,3 @@ for tf in np.arange(N):
     plt.title('TF #'+f'{tf+1}',fontsize=12)
     plt.axis("off")
     
-

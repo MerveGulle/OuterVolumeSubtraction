@@ -24,7 +24,6 @@ def espirit(X, k, r, t, c):
     cy = 91
     cz = 46
     
-    Nx = 1
     Ny = 252
     Nz = 72
     

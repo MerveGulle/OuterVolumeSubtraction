@@ -10,8 +10,8 @@ from scipy.io import loadmat
 # %% Hyperparameters
 mask_type = "only_heart"
 # mask_type = only_heart or outer_volume or no_diaphragm
-subject_number = 3
-slice_number = 4
+subject_number = 1
+slice_number = 3
 
 
 # %% Data Loading
@@ -55,14 +55,16 @@ for tf in np.arange(num_img):
 
 
 # %% Cardiac contraction : time frame = 7 (Ndyn=6)
-TF = 0
+TF = 2
 shift = np.mod(TF, 8)
+center_line = np.array([44, 45, 46, 47, 48, 49, 42, 43])
 
 
 # %% Zerofilled image
 # acceleration mask
 acc_mask = np.zeros((Nx,Ny), dtype=bool)
 acc_mask[:,shift::8] = True
+acc_mask[:,center_line[shift]] = True
 acc_mask[:,68::] = True 
 # zerofilled image:x0
 x0 = sf.rssq(sf.kspace_to_im(datas[:,:,:,TF]*acc_mask[...,None]))
@@ -125,68 +127,65 @@ elif (mask_type == "outer_volume"):
     k = 8
 # full smaps
 Smaps = espirit(y_com1[None,...], 8,44, 0.02, 0.95)
-Smaps = Smaps[0,:,:,:,0]
+Smaps = Smaps[0,:,:,:,0:2]
 # masked smaps
-Smaps_mask = Smaps * (1 - ovs_mask[...,None])
+Smaps_mask = Smaps * (1 - ovs_mask[...,None,None])
 # outer volume signal subtracted smaps
 y_com_diff = y_com1-y_background
 y_com_diff[:,Ny-4:Ny] = 0
 Smaps_diff = espirit((y_com_diff)[None,...], k, 44, 0.02, 0.95)
-Smaps_diff = Smaps_diff[0,:,:,:,0]
+Smaps_diff = Smaps_diff[0,:,:,:,0:2]
 
-coils_to_visualize = np.array([0,4,8,12,16,20,24,28])+1
+coils_to_visualize = np.array([0,4,8,12,16,20,24,28])
 
 """
 figure = plt.figure();
-plt.imshow(np.abs(Smaps[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray", vmax = 0.5); 
+plt.imshow(np.abs(Smaps[:,:,coils_to_visualize,1].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray", vmax = 0.5); 
 plt.axis('off')
 plt.title('Full Sensitivity Maps - Amplitude')
 
 figure = plt.figure(); 
-plt.imshow(np.abs(Smaps_mask[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray", vmax = 0.5); 
+plt.imshow(np.abs(Smaps_mask[:,:,coils_to_visualize,0].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray", vmax = 0.5); 
 plt.axis('off') 
 plt.title('Masked Sensitivity Maps - Amplitude')
 
 figure = plt.figure(); 
-plt.imshow(np.abs(Smaps_diff[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray", vmax = 0.5); 
+plt.imshow(np.abs(Smaps_diff[:,:,coils_to_visualize,0].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray", vmax = 0.5); 
 plt.axis('off') 
 plt.title('OVS Sensitivity Maps - Amplitude')
 
 
 figure = plt.figure();
-plt.imshow(np.angle(Smaps[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray"); 
+plt.imshow(np.angle(Smaps[:,:,coils_to_visualize,0].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray"); 
 plt.axis('off')
 plt.title('Full Sensitivity Maps - Phase')
 
 figure = plt.figure(); 
-plt.imshow(np.angle(Smaps_mask[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray"); 
+plt.imshow(np.angle(Smaps_mask[:,:,coils_to_visualize,0].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray"); 
 plt.axis('off') 
 plt.title('Masked Sensitivity Maps - Phase')
 
 figure = plt.figure(); 
-plt.imshow(np.angle(Smaps_diff[:,:,coils_to_visualize].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray"); 
+plt.imshow(np.angle(Smaps_diff[:,:,coils_to_visualize,0].swapaxes(0,2).reshape(8*Ny,Nx).swapaxes(0,1)), cmap="gray"); 
 plt.axis('off')  
 plt.title('OVS Sensitivity Maps - Phase')
 """  
 
 # %% Reference Images
-cg_sense_ref = sf.cgsense(datas[:,:,:,TF], Smaps, np.abs(datas[:,:,0,TF])!=0)
+cg_sense_ref = sf.cgsense(datas[:,:,:,TF], Smaps, np.abs(datas[:,:,0,TF])!=0)[:,:,0]
 figure = plt.figure(figsize=(2,6)); plt.imshow(np.abs(cg_sense_ref),cmap="gray",vmax=1800); 
 plt.axis('off'); plt.title('CG-SENSE, TF='+f'{TF+1}')
 
-sense_ref = sf.sense(datas[:,:,:,TF], Smaps, TF, R=4)
-figure = plt.figure(figsize=(2,6)); plt.imshow(np.abs(sense_ref),cmap="gray",vmax=900); 
-plt.axis('off'); plt.title('SENSE, TF='+f'{TF+1}')
 
 # %% results with cgsense
 # no OVS processing
-cg_sense = sf.cgsense(y1, Smaps, acc_mask)
+cg_sense = sf.cgsense(y1, Smaps, acc_mask)[:,:,0]
 # OVS from k-space
-cg_sense_OVS = sf.cgsense(y1_diff, Smaps, acc_mask)
+cg_sense_OVS = sf.cgsense(y1_diff, Smaps, acc_mask)[:,:,0]
 # OVS from k-space and calibration in image space
-cg_sense_mask = sf.cgsense(y1_diff, Smaps_mask, acc_mask)
+cg_sense_mask = sf.cgsense(y1_diff, Smaps_mask, acc_mask)[:,:,0]
 # OVS from k-space and calibration in k-space 
-cg_sense_diff = sf.cgsense(y1_diff, Smaps_diff, acc_mask)
+cg_sense_diff = sf.cgsense(y1_diff, Smaps_diff, acc_mask)[:,:,0]
 
 # %%
 background = cg_sense_ref * ovs_mask
@@ -217,9 +216,9 @@ plt.text(0.5, 0.05, 'kspace_diff\nSmaps_diff', color = 'white',
          horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
 plt.axis('off')
 plt.subplot(1,5,5)
-plt.imshow(np.abs(cg_sense_ref), cmap='gray', vmin=vmin, vmax=vmax)
+plt.imshow(np.abs(im_composite), cmap='gray', vmin=vmin, vmax=vmax)
 ax = plt.gca()
-plt.text(0.5, 0.05, 'reference\nimage', color = 'white', 
+plt.text(0.5, 0.05, 'composite\nimage', color = 'white', 
          horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
 plt.axis('off')
 plt.suptitle('Results for CG-SENSE, Sub:'+f'{subject_number}'+', Slc:'+f'{slice_number}'+', TF:'+ f'{TF+1}', fontsize=14)
@@ -289,4 +288,3 @@ for tf in np.arange(N):
     plt.imshow(np.abs(imagesN[:,:,tf]),cmap="gray",vmax=1500)
     plt.title('TF #'+f'{tf+1}',fontsize=12)
     plt.axis("off")
-    

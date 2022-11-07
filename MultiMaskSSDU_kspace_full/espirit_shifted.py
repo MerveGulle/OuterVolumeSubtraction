@@ -87,6 +87,7 @@ def espirit(X, k, r, t, c):
     
     return maps
 
+
 def espirit_proj(x, esp):
     """
     Construct the projection of multi-channel image x onto the range of the ESPIRiT operator. Returns the inner

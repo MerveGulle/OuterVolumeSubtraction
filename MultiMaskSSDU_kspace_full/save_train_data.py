@@ -37,6 +37,9 @@ for sub in np.arange(number_of_subjects):
             time_frame_no = indices[2,sub_counter][slc_counter,TF]-1
             print('time frame = '+ f'{time_frame_no+1}')
             
+            # data indices
+            sub_slc_tf = np.array([sub,slc,time_frame_no])
+            
         
         slc_counter += 1
     sub_counter += 1

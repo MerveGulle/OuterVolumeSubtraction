@@ -33,6 +33,10 @@ for sub in np.arange(number_of_subjects):
         
         _, kspace_data = list(realtime_data.items())[1]
         
+        for TF in range(3):
+            time_frame_no = indices[2,sub_counter][slc_counter,TF]-1
+            print('time frame = '+ f'{time_frame_no+1}')
+            
         
         slc_counter += 1
     sub_counter += 1

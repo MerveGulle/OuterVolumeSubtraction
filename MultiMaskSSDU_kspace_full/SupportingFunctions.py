@@ -11,6 +11,7 @@ def ifft2 (kspace, axis=[1,2]):
 
 # kspace = forward(image): encoding one slice image to kspace: [2 Nx Ny] --> [1 Nx Ny Nc]
 # Smaps: sensitivity map [2 Nx Ny Nc]
+# mask: acceleration mask [Nx Ny]
 # images are 2 many because the Smaps are 2 sets
 def forward(image,Smaps,mask):
     return fft2(torch.sum(image[...,None]*Smaps,0)[None,...])*mask[None,:,:,None]

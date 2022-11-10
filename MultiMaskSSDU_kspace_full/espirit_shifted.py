@@ -21,6 +21,10 @@ def espirit(X, k, r, t, c):
             being the idx'th set of ESPIRiT maps.
     """
     
+    cx = np.argmax(np.abs(X).sum((1,2,3)))
+    cy = np.argmax(np.abs(X).sum((0,2,3)))
+    cz = np.argmax(np.abs(X).sum((0,1,3)))
+    
     sx = np.shape(X)[0]
     sy = np.shape(X)[1]
     sz = np.shape(X)[2]

@@ -51,6 +51,16 @@ for sub in np.arange(number_of_subjects):
             sense_maps = espirit(composite_kspace, 8 ,40, 0.02, 0.95)
             sense_maps = sense_maps[0,:,:,:,0:2].transpose(3,0,1,2)
             
+            # acceleration mask
+            [_,Nx,Ny,Nc] = composite_kspace.shape
+            start_line = np.mod(time_frame_no, 8)
+            Cx = np.argmax(np.abs(composite_kspace).sum((0,2,3))) # center line in x direction
+            Cy = np.argmax(np.abs(composite_kspace).sum((0,1,3))) # center line in y direction
+            center_line = Cy + 3 - np.mod(Cy-start_line-1, 8)
+            acc_mask = np.zeros((Nx,Ny), dtype=bool)
+            acc_mask[:,start_line::8] = True
+            acc_mask[:,center_line] = True
+            
         
         slc_counter += 1
     sub_counter += 1

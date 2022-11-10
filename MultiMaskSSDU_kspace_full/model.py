@@ -1,5 +1,17 @@
 import torch
+import torch.nn as nn
 import SupportingFunctions as sf
+
+#                     ______________________________________nth_iteration___
+#                    |  ______________                          __________  |
+#        x(n)        | |              |          z(n)          |          | |    x(n+1)
+#   ---------------->| | CNN denoiser | ---------------------> | DC layer | |-------------->
+#     [2 2Nx Ny]  |  | |______________| [2 2Nx Ny]-->[2 Nx Ny] |__________| |  | [2 Nx Ny]
+#       (real)    |  |                    (real)  to (complex)              |  | (complex)
+#                 |  |______________________________________________________|  |
+#                 |----------<--------<--------<--------<---------<------------|
+#                          (complex) [2 Nx Ny] to (real) [2 2Nx 2Ny]
+
 
 # x0      : initial solution [2 Nx Ny]
 # zn      : Output of nth denoiser block [2 Nx Ny]
@@ -26,3 +38,19 @@ def DC_layer(x0,zn,L,S,mask,cg_iter=10):
         r_now = torch.clone(r_next)
     return xn
 
+# define RB:residual block (conv + ReLU + conv + xScale)
+# input(xn) : output of DC layer, noisy image [2 2*Nx Ny]
+# output(zn): denoised image [2 2*Nx Ny]
+class RB(nn.Module):
+    def __init__(self, C=0.1):
+        super().__init__()
+        self.conv  = nn.Conv2d(64, 64, kernel_size=3, padding=1, bias=False)
+        self.relu  = nn.ReLU()
+        self.C     = C
+    def forward(self, x):
+        y = self.conv(x)
+        y = self.relu(y)
+        y = self.conv(y)
+        y = y*self.C
+        y = y + x
+        return y

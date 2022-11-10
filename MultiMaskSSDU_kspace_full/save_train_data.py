@@ -3,7 +3,11 @@ import numpy as np
 import os
 import mat73
 
-
+# parameters
+K = 5        # number of masks
+acs_size = 8 # DC calibration region size
+rho = 0.6    # data consistency / whole mask
+# get data indices
 data_indices = loadmat('data_indices.mat')
 _, indices = list(data_indices.items())[3]
 # indices.shape = (3,14)

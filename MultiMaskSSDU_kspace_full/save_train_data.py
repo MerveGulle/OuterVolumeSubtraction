@@ -61,6 +61,16 @@ for sub in np.arange(number_of_subjects):
             acc_mask[:,start_line::8] = True
             acc_mask[:,center_line] = True
             
+            # data consistency masks
+            size = np.floor(Nx * Ny * K * rho).astype(int)
+            ind = np.random.choice(np.arange(Nx * Ny * K), size=size, replace=False)
+            DC_masks = np.zeros(Nx*Ny*K)
+            DC_masks[ind] = 1
+            DC_masks = DC_masks.reshape((Nx,Ny,K))
+            DC_masks[Cx-acs_size//2:Cx+acs_size//2,Cy-acs_size//2:Cy+acs_size//2] = 1
+            DC_masks = DC_masks * acc_mask[...,None]
+            DC_masks = (DC_masks==1)
+            
         
         slc_counter += 1
     sub_counter += 1

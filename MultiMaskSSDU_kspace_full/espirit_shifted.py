@@ -30,9 +30,9 @@ def espirit(X, k, r, t, c):
     sz = np.shape(X)[2]
     nc = np.shape(X)[3]
 
-    sxt = (sx//2-r//2, sx//2+r//2) if (sx > 1) else (0, 1)
-    syt = (sy//2-r//2, sy//2+r//2) if (sy > 1) else (0, 1)
-    szt = (sz//2-r//2, sz//2+r//2) if (sz > 1) else (0, 1)
+    sxt = (cx-r//2, cx+r//2) if (sx > 1) else (0, 1)
+    syt = (cy-r//2, cy+r//2) if (sy > 1) else (0, 1)
+    szt = (cz-r//2, cz+r//2) if (sz > 1) else (0, 1)
     
     # Extract calibration region.    
     C = X[sxt[0]:sxt[1], syt[0]:syt[1], szt[0]:szt[1], :].astype(np.complex64)

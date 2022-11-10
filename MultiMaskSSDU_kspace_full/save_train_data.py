@@ -2,6 +2,7 @@ from scipy.io import loadmat
 import numpy as np
 import os
 import mat73
+from espirit_shifted import espirit
 
 # parameters
 K = 5        # number of masks
@@ -45,6 +46,10 @@ for sub in np.arange(number_of_subjects):
             composite_kspace = composite_kspace[np.abs(np.sum(composite_kspace[:,:,0],1))!=0]
             composite_kspace = composite_kspace[:,np.abs(np.sum(composite_kspace[:,:,0],0))!=0]
             composite_kspace = (composite_kspace/np.max(np.abs(composite_kspace)))[None,...]
+            
+            # sensitivity maps
+            sense_maps = espirit(composite_kspace, 8 ,40, 0.02, 0.95)
+            sense_maps = sense_maps[0,:,:,:,0:2].transpose(3,0,1,2)
             
         
         slc_counter += 1

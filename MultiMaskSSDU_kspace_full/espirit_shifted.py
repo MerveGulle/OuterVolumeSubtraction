@@ -89,6 +89,11 @@ def espirit(X, k, r, t, c):
                     if (s[ldx]**2 > c):
                         maps[idx, jdx, kdx, :, ldx] = u[:, ldx]
     
+    zz,yy = np.meshgrid(np.linspace(0,sz-1,sz),np.linspace(0,sy-1,sy))
+    yy = np.exp(1j*2*np.pi*(cy - sy//2 + 1)/sy*yy)
+    zz = np.exp(1j*2*np.pi*(cz - sz//2 + 1)/sz*zz)
+    maps = maps * yy[None,...,None,None] * zz[None,...,None,None]
+    
     return maps
 
 

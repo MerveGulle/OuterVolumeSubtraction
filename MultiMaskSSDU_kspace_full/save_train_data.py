@@ -3,6 +3,7 @@ import numpy as np
 import os
 import mat73
 from espirit_shifted import espirit
+from scipy.io import savemat
 
 # parameters
 K = 5        # number of masks
@@ -71,6 +72,14 @@ for sub in np.arange(number_of_subjects):
             DC_masks = DC_masks * acc_mask[...,None]
             DC_masks = (DC_masks==1)
             
+            # save the slice data
+            datadir = {"composite_kspace": composite_kspace, 
+                       "sense_maps": sense_maps,
+                       "acc_mask": acc_mask,
+                       "data_consistency_masks": DC_masks,
+                       "sub_slc_tf": sub_slc_tf}
+            data_filename = "/home/naxos2-raid12/glle0001/TrainData/subject_" + str(sub) + "_slice_" + str(slc) + "_" + str(TF+1) + ".mat"
+            savemat(data_filename, datadir)
         
         slc_counter += 1
     sub_counter += 1

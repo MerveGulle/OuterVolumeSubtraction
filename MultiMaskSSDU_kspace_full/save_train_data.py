@@ -40,6 +40,12 @@ for sub in np.arange(number_of_subjects):
             # data indices
             sub_slc_tf = np.array([sub,slc,time_frame_no])
             
+            # composite kspace
+            composite_kspace = np.sum(kspace_data[:,:,:,time_frame_no:time_frame_no+4],3)
+            composite_kspace = composite_kspace[np.abs(np.sum(composite_kspace[:,:,0],1))!=0]
+            composite_kspace = composite_kspace[:,np.abs(np.sum(composite_kspace[:,:,0],0))!=0]
+            composite_kspace = (composite_kspace/np.max(np.abs(composite_kspace)))[None,...]
+            
         
         slc_counter += 1
     sub_counter += 1

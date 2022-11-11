@@ -4,12 +4,14 @@ import numpy as np
 import random
 import SupportingFunctions as sf
 import sys
+import mathplotlib.pyplot as plt
 
 
 ### HYPERPARAMETERS
 params = dict([('num_epoch', 100),
                ('batch_size', 1),
                ('learning_rate', 1e-3),
+               ('num_training_slice', 10),
                ('num_workers', 0),          # It should be 0 for Windows machines
                ('use_cpu', False),
                ('num_mask', 3),             # number of masks
@@ -50,7 +52,7 @@ loss_arr       = np.zeros(params['num_epoch'])
 loss_arr_valid = np.zeros(params['num_epoch'])
 
 # training
-for epoch in range(params['num_epoch']):
+for epoch in range(params['num_epoch'],params['num_training_slice']):
     for i, (x0, composite_kspace, sense_map, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(loaders['train_loader']):
         x0                     = x0.to(device)                       # [K,Nx,Ny]
         composite_kspace       = composite_kspace.to(device)         # [1,Nx,Ny,Nc]
@@ -127,3 +129,13 @@ for epoch in range(params['num_epoch']):
 
 
 # 6) Plot the Loss Graph
+figure = plt.figure()
+n_epoch = np.arange(1,params['num_epoch']+1)
+plt.plot(n_epoch,loss_arr,n_epoch,loss_arr_valid)
+plt.xlabel('epoch')
+plt.title('Loss Graph')
+plt.legend(['train loss', 'validation loss'])
+figure.savefig('loss_graph.png')
+
+torch.save(loss_arr, 'train_loss.pt')
+torch.save(loss_arr_valid, 'valid_loss.pt')

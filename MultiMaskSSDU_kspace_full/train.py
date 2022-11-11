@@ -29,6 +29,10 @@ device = torch.device('cuda' if (torch.cuda.is_available() and (not(params['use_
 # 2) Load Data
 
 # 3) Create Model structure
+denoiser = model.ResNet().to(device)
+denoiser.apply(model.weights_init_normal)
+optimizer = torch.optim.Adam(denoiser.parameters(),lr=params['learning_rate'])
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
 
 # 4) Start Training
 

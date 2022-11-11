@@ -35,5 +35,8 @@ optimizer = torch.optim.Adam(denoiser.parameters(),lr=params['learning_rate'])
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
 
 # 4) Start Training
+# Set the initial loss values
+loss_arr       = np.zeros(params['num_epoch'])
+loss_arr_valid = np.zeros(params['num_epoch'])
 
 # 5) Plot the Loss Graph

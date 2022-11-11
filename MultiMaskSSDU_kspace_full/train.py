@@ -12,7 +12,7 @@ params = dict([('num_epoch', 100),
                ('T', 10)])                  # number of iterations
 
 ### PATHS 
-train_data_path = "placeholder"
+train_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\TrainDataset"
 
 # 0) Fix randomness for reproducible experiment
 torch.backends.cudnn.benchmark = True

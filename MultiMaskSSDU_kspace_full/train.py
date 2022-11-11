@@ -2,7 +2,7 @@ import model
 import torch
 import numpy as np
 import random
-from scipy.io import loadmat
+import SupportingFunctions as sf
 
 
 ### HYPERPARAMETERS
@@ -28,10 +28,9 @@ g.manual_seed(0)
 # 1) Device configuration
 device = torch.device('cuda' if (torch.cuda.is_available() and (not(params['use_cpu']))) else 'cpu')
 
-# 2) Load Data
-# indices.shape = (3,14): 14 subjects, 0:subject_no, 1:slice_no, 2:time_frame_no
-data_indices = loadmat('data_indices.mat')
-_, indices = list(data_indices.items())[3]
+# 2) Load the Train Data
+dataset = sf.OVS_DatasetTrain(train_data_path, num_slice=10)
+loaders, datasets= sf.prepare_train_loaders(dataset,params,g)
 
 # 3) Create Model structure
 denoiser = model.ResNet().to(device)

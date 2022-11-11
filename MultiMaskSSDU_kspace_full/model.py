@@ -82,3 +82,49 @@ class RB(nn.Module):
         return y
     
 
+# define ResNet Block
+class ResNet(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv1 = nn.Conv2d(2, 64, kernel_size=3, padding=1, bias=False)
+        self.RB1   = RB()
+        self.RB2   = RB()
+        self.RB3   = RB()
+        self.RB4   = RB()
+        self.RB5   = RB()
+        self.RB6   = RB()
+        self.RB7   = RB()
+        self.RB8   = RB()
+        self.RB9   = RB()
+        self.RB10  = RB()
+        self.RB11  = RB()
+        self.RB12  = RB()
+        self.RB13  = RB()
+        self.RB14  = RB()
+        self.RB15  = RB()
+        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, padding=1, bias=False)
+        self.conv3 = nn.Conv2d(64, 2, kernel_size=3, padding=1, bias=False)
+        self.L = nn.Parameter(torch.tensor(0.05, requires_grad=True))
+    def forward(self, x):
+        z = sf.complex2real(x).float()
+        z = self.conv1(z)
+        r = self.RB1(z)
+        r = self.RB2(r)
+        r = self.RB3(r)
+        r = self.RB4(r)
+        r = self.RB5(r)
+        r = self.RB6(r)
+        r = self.RB7(r)
+        r = self.RB8(r)
+        r = self.RB9(r)
+        r = self.RB10(r)
+        r = self.RB11(r)
+        r = self.RB12(r)
+        r = self.RB13(r)
+        r = self.RB14(r)
+        r = self.RB15(r)
+        r = self.conv2(r)
+        z = r + z
+        z = self.conv3(z)
+        z = sf.real2complex(z)
+        return self.L, z

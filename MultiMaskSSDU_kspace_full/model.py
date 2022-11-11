@@ -38,9 +38,35 @@ def DC_layer(x0,zn,L,S,mask,cg_iter=10):
         r_now = torch.clone(r_next)
     return xn
 
+# complex 1 channel to real 2 channels
+def ch1to2(data1):       
+    return torch.cat((data1.real,data1.imag),0)
+# real 2 channels to complex 1 channel
+def ch2to1(data2):       
+    return data2[0:1,:,:] + 1j * data2[1:2,:,:] 
+
+
+# x: complex [2 Nx Ny] ---> y: real [2 2Nx Ny]
+# prepare the DC layer output for the CNN denoiser
+def complex2real(x):
+    y = torch.cat((x[0],x[1]),1)
+    y = torch.cat((y.real,y.imag),0)
+    return y
+
+
+# x: real [2 2Nx Ny] ---> y: complex [2 Nx Ny]
+# prepare the CNN denoiser output for the DC layer
+def real2complex(x):
+    Nx = x.shape(1)//2
+    y = x[0:1] + 1j*x[1:2]
+    y = torch.cat((y[:,0:Nx],y[:,Nx:2*Nx]),0)
+    return y
+
+
 # define RB:residual block (conv + ReLU + conv + xScale)
 # input(xn) : output of DC layer, noisy image [2 2*Nx Ny]
 # output(zn): denoised image [2 2*Nx Ny]
+# convolutional blocks share the same coefficients
 class RB(nn.Module):
     def __init__(self, C=0.1):
         super().__init__()
@@ -54,3 +80,5 @@ class RB(nn.Module):
         y = y*self.C
         y = y + x
         return y
+    
+

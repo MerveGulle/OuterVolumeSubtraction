@@ -24,6 +24,7 @@ g = torch.Generator()
 g.manual_seed(0)
 
 # 1) Device configuration
+device = torch.device('cuda' if (torch.cuda.is_available() and (not(params['use_cpu']))) else 'cpu')
 
 # 2) Load Data
 

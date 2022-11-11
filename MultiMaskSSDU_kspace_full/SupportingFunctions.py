@@ -86,3 +86,17 @@ def prepare_train_loaders(dataset,params,g):
 
     return loaders, datasets
 
+# test dataset loader
+def prepare_test_loaders(test_dataset,params):
+    test_loader  = DataLoader(dataset       = test_dataset,
+                            batch_size      = params['batch_size'],
+                            shuffle         = False,
+                            drop_last       = True,
+                            #worker_init_fn  = seed_worker,
+                            num_workers     = params['num_workers'])
+    
+    datasets = dict([('test_dataset', test_dataset)])  
+    
+    loaders = dict([('test_loader', test_loader)])
+
+    return loaders, datasets

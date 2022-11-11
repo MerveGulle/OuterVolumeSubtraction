@@ -24,7 +24,7 @@ def forward(image,Smaps,mask):
 def backward(kspace,Smaps):
     return torch.sum(ifft2(kspace)*torch.conj(Smaps),3)
 
-# dataset generator
+# train dataset generator
 class OVS_DatasetTrain():
     def __init__(self,data_path,num_slice):
         self.dir_list = os.listdir(data_path)
@@ -85,6 +85,23 @@ def prepare_train_loaders(dataset,params,g):
                     ('full_loader', full_loader)])
 
     return loaders, datasets
+
+# test dataset generator
+class OVS_DatasetTest():
+    def __init__(self,data_path,num_slice):
+        self.dir_list = os.listdir(data_path)
+        self.slices = sample(self.dir_list, self.num_slices)
+          
+    def __getitem__(self,index):
+        slice_data = loadmat(self.data_path + os.path + self.slices[index])
+        self.composite_kspace = slice_data['composite_kspace']
+        self.sense_maps = slice_data['sense_maps']
+        self.acc_mask = slice_data['acc_mask']
+        self.sub_slc_tf = slice_data['sub_slc_tf']
+        self.x0 = backward(self.composite_kspace*self.acc_mask[...,None], self.sense_maps)
+        
+        return self.x0, self.composite_kspace, self.sense_map, self.acc_mask, self.sub_slc_tf, index
+  
 
 # test dataset loader
 def prepare_test_loaders(test_dataset,params):

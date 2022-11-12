@@ -28,7 +28,7 @@ def backward(kspace,Smaps):
 class OVS_DatasetTrain():
     def __init__(self,data_path,num_slice):
         self.dir_list = os.listdir(data_path)
-        self.slices = sample(self.dir_list, self.num_slices)
+        self.slices = sample(self.dir_list, num_slice)
           
     def __getitem__(self,index):
         slice_data = loadmat(self.data_path + os.path + self.slices[index])

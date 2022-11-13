@@ -49,17 +49,17 @@ def ch2to1(data2):
 # x: complex [2 Nx Ny] ---> y: real [2 2Nx Ny]
 # prepare the DC layer output for the CNN denoiser
 def complex2real(x):
-    y = torch.cat((x[0],x[1]),1)
-    y = torch.cat((y.real,y.imag),0)
+    y = torch.cat((x[:,0:1],x[:,1:2]),2)
+    y = torch.cat((y.real,y.imag),1)
     return y
 
 
 # x: real [2 2Nx Ny] ---> y: complex [2 Nx Ny]
 # prepare the CNN denoiser output for the DC layer
 def real2complex(x):
-    Nx = x.shape(1)//2
-    y = x[0:1] + 1j*x[1:2]
-    y = torch.cat((y[:,0:Nx],y[:,Nx:2*Nx]),0)
+    Nx = x.shape[2]//2
+    y = x[:,0:1] + 1j*x[:,1:2]
+    y = torch.cat((y[:,:,0:Nx],y[:,:,Nx:2*Nx]),1)
     return y
 
 
@@ -106,7 +106,7 @@ class ResNet(nn.Module):
         self.conv3 = nn.Conv2d(64, 2, kernel_size=3, padding=1, bias=False)
         self.L = nn.Parameter(torch.tensor(0.05, requires_grad=True))
     def forward(self, x):
-        z = sf.complex2real(x).float()
+        z = complex2real(x).float()
         z = self.conv1(z)
         r = self.RB1(z)
         r = self.RB2(r)
@@ -126,7 +126,7 @@ class ResNet(nn.Module):
         r = self.conv2(r)
         z = r + z
         z = self.conv3(z)
-        z = sf.real2complex(z)
+        z = real2complex(z)
         return self.L, z
     
     

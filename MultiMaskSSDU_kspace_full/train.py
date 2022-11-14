@@ -100,22 +100,28 @@ for epoch in range(params['num_epoch']):
         # Optimize
         optimizer.step()
 
-    for i, (x0, composite_kspace, sense_map, acc_mask, sub_slc_tf, index) in enumerate(validation_loader['valid_loader']):
-        x0                     = x0[0].to(device)                       # [2,Nx,Ny]
-        composite_kspace       = composite_kspace[0].to(device)         # [1,Nx,Ny,Nc]
-        sense_map              = sense_map[0].to(device)                # [2,Nx,Ny,Nc]
-        acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
-        # Forward pass
-        xt = torch.clone(x0)
-        for t in range(params['T']):
-            L, zt = denoiser(xt[None,...])
-            xt = model.DC_layer(x0,zt[0],L,sense_map,acc_mask)
-            
-        # loss calculation for kth mask
-        kspace_loss = sf.forward(xt, sense_map, acc_mask)
-        # loss calculation
-        loss = L1L2Loss(kspace_loss, composite_kspace*acc_mask[None,...,None])
-        loss_arr_valid[epoch] += loss.item()/len(validation_datasets['valid_dataset'])
+    for i, (x0, composite_kspace, sense_map, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(validation_loader['valid_loader']):
+        with torch.no_grad():
+            x0                     = x0[0].to(device)                       # [K,Nx,Ny]
+            composite_kspace       = composite_kspace[0].to(device)         # [1,Nx,Ny,Nc]
+            sense_map              = sense_map[0].to(device)                # [2,Nx,Ny,Nc]
+            acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
+            data_consistency_masks = data_consistency_masks[0].to(device)   # [Nx,Ny,K]
+            # Forward pass
+            loss = 0
+            for k in range(params['num_mask']):
+                loss_mask = acc_mask - data_consistency_masks[...,k]
+                xk0 = x0[2*k:2*k+2]   # x0 for kth DC mask
+                xt = xk0              # iteration starts with xt
+                for t in range(params['T']):
+                    L, zt = denoiser(xt[None,...])
+                    xt = model.DC_layer(xk0,zt[0],L,sense_map,data_consistency_masks[...,k])
+                # loss calculation for kth mask
+                kspace_loss = sf.forward(xt, sense_map, loss_mask)
+                # loss calculation
+                loss += L1L2Loss(kspace_loss, composite_kspace*loss_mask[None,...,None])/params['num_mask']
+                
+            loss_arr_valid[epoch] += loss.item()/len(validation_datasets['valid_dataset'])
         
     if ((epoch+1)%5==0):
         torch.save(denoiser.state_dict(), 'OVS_multimaskSSDU_' + f'{epoch+1:03d}'+ '.pt')

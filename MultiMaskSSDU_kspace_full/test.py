@@ -35,6 +35,19 @@ denoiser = model.ResNet().to(device)
 denoiser.load_state_dict(torch.load('OVS_multimaskSSDU_200.pt'))
 denoiser.eval()
 
+for i, (x0, composite_kspace, sense_map, acc_mask, sub_slc_tf, index) in enumerate(test_loader['test_loader']):
+    with torch.no_grad():
+        # Forward pass
+        x0                     = x0[0].to(device)                       # [2,Nx,Ny]
+        composite_kspace       = composite_kspace[0].to(device)         # [1,Nx,Ny,Nc]
+        sense_map              = sense_map[0].to(device)                # [2,Nx,Ny,Nc]
+        acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
+        # Forward pass
+        xt = torch.clone(x0)
+        for t in range(params['T']):
+            L, zt = denoiser(xt[None,...])
+            xt = model.DC_layer(x0,zt[0],L,sense_map,acc_mask)
+
 
 
 

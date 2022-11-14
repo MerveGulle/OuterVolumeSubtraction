@@ -85,11 +85,17 @@ class OVS_DatasetValidation():
         self.composite_kspace = torch.from_numpy(slice_data['composite_kspace'])
         self.sense_maps = torch.from_numpy(slice_data['sense_maps'])
         self.acc_mask = torch.from_numpy(slice_data['acc_mask'])
+        self.data_consistency_masks = torch.from_numpy(slice_data['data_consistency_masks'])
         self.sub_slc_tf = torch.from_numpy(slice_data['sub_slc_tf'])
-        self.x0 = backward(self.composite_kspace*self.acc_mask[...,None], self.sense_maps)
+        Nx, Ny = self.acc_mask.shape
+        K = (self.data_consistency_masks).shape[2]
+        acc_kspace = self.composite_kspace[...,None]*self.data_consistency_masks[None,:,:,None,:]
+        self.x0 = torch.zeros([2*K,Nx,Ny], dtype=torch.complex64)
+        for k in range(K):
+            self.x0[2*k:2*k+2] = backward(acc_kspace[...,k],self.sense_maps)
         
-        return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.sub_slc_tf, index
-        
+        return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.data_consistency_masks, self.sub_slc_tf, index
+    
     def __len__(self):
         return self.num_slice 
   

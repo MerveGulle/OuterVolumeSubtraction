@@ -8,3 +8,8 @@ params = dict([('num_epoch', 100),
                ('use_cpu', False),
                ('num_mask', 3),             # number of masks
                ('T', 10)])                  # number of iterations
+
+
+### PATHS 
+# test_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\TrainDataset"
+test_data_path  = "/home/naxos2-raid12/glle0001/TestData/"

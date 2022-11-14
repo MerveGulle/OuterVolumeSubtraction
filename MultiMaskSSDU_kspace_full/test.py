@@ -22,6 +22,11 @@ test_data_path  = "/home/naxos2-raid12/glle0001/TestData/"
 # 1) Device configuration
 device = torch.device('cuda' if (torch.cuda.is_available() and (not(params['use_cpu']))) else 'cpu')
 
+# 2) Load the Train & Validation Data
+test_dataset = sf.OVS_DatasetTest(test_data_path, params['num_test_slice'])
+test_loader, test_datasets= sf.prepare_train_loaders(test_dataset,params)
+
+
 
 
 

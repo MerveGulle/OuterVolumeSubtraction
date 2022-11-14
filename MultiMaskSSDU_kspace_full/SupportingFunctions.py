@@ -28,8 +28,11 @@ def backward(kspace,Smaps):
 class OVS_DatasetTrain():
     def __init__(self,data_path,num_slice):
         self.dir_list  = os.listdir(data_path)
-        self.slices    = sample(self.dir_list, num_slice)
-        self.num_slice = num_slice
+        if num_slice == 'all':
+            self.slices = self.dir_list
+        else:
+            self.slices    = sample(self.dir_list, num_slice)
+        self.num_slice = len(self.slices) 
         self.data_path = data_path
           
     def __getitem__(self,index):
@@ -50,8 +53,65 @@ class OVS_DatasetTrain():
     
     def __len__(self):
         return self.num_slice 
+
+# train dataset loader
+def prepare_train_loaders(train_dataset,params):
+    train_loader  = DataLoader(dataset       = train_dataset,
+                             batch_size      = params['batch_size'],
+                             shuffle         = False,
+                             drop_last       = True,
+                             #worker_init_fn  = seed_worker,
+                             num_workers     = params['num_workers'])
+    
+    datasets = dict([('train_dataset', train_dataset)])  
+    
+    loaders = dict([('train_loader', train_loader)])
+
+    return loaders, datasets
+
+# validation dataset generator
+class OVS_DatasetValidation():
+    def __init__(self,data_path,num_slice):
+        self.dir_list = os.listdir(data_path)
+        if num_slice == 'all':
+            self.slices = self.dir_list
+        else:
+            self.slices    = sample(self.dir_list, num_slice)
+        self.num_slice = len(self.slices) 
+        self.data_path = data_path
+          
+    def __getitem__(self,index):
+        slice_data = loadmat(self.data_path + os.sep + self.slices[index])
+        self.composite_kspace = torch.from_numpy(slice_data['composite_kspace'])
+        self.sense_maps = torch.from_numpy(slice_data['sense_maps'])
+        self.acc_mask = torch.from_numpy(slice_data['acc_mask'])
+        self.sub_slc_tf = torch.from_numpy(slice_data['sub_slc_tf'])
+        self.x0 = backward(self.composite_kspace*self.acc_mask[...,None], self.sense_maps)
+        
+        return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.sub_slc_tf, index
+        
+    def __len__(self):
+        return self.num_slice 
+  
+
+# validation dataset loader
+def prepare_valid_loaders(valid_dataset,params):
+    valid_loader  = DataLoader(dataset       = valid_dataset,
+                             batch_size      = params['batch_size'],
+                             shuffle         = False,
+                             drop_last       = True,
+                             #worker_init_fn  = seed_worker,
+                             num_workers     = params['num_workers'])
+    
+    datasets = dict([('valid_dataset', valid_dataset)])  
+    
+    loaders = dict([('valid_loader', valid_loader)])
+
+    return loaders, datasets
     
 # train dataset loader
+''' 
+# train + valid
 def prepare_train_loaders(dataset,params,g):
     train_num  = int(dataset.num_slice * 0.8)
     valid_num  = dataset.num_slice - train_num
@@ -90,22 +150,24 @@ def prepare_train_loaders(dataset,params,g):
                     ('full_loader', full_loader)])
 
     return loaders, datasets
+'''
 
 # test dataset generator
 class OVS_DatasetTest():
     def __init__(self,data_path,num_slice):
         self.dir_list = os.listdir(data_path)
-        self.slices = sample(self.dir_list, self.num_slices)
+        self.slices = sample(self.dir_list, num_slice)
+        self.data_path = data_path
           
     def __getitem__(self,index):
-        slice_data = loadmat(self.data_path + os.path + self.slices[index])
+        slice_data = loadmat(self.data_path + os.sep + self.slices[index])
         self.composite_kspace = torch.from_numpy(slice_data['composite_kspace'])
         self.sense_maps = torch.from_numpy(slice_data['sense_maps'])
         self.acc_mask = torch.from_numpy(slice_data['acc_mask'])
         self.sub_slc_tf = torch.from_numpy(slice_data['sub_slc_tf'])
         self.x0 = backward(self.composite_kspace*self.acc_mask[...,None], self.sense_maps)
         
-        return self.x0, self.composite_kspace, self.sense_map, self.acc_mask, self.sub_slc_tf, index
+        return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.sub_slc_tf, index
   
 
 # test dataset loader

@@ -1,5 +1,6 @@
 import torch
 import SupportingFunctions as sf
+import model
 
 
 ### HYPERPARAMETERS
@@ -26,7 +27,13 @@ device = torch.device('cuda' if (torch.cuda.is_available() and (not(params['use_
 test_dataset = sf.OVS_DatasetTest(test_data_path, params['num_test_slice'])
 test_loader, test_datasets= sf.prepare_train_loaders(test_dataset,params)
 
+###############################################################################
+############## TEST CODE ######################################################
+###############################################################################
 
+denoiser = model.ResNet().to(device)
+denoiser.load_state_dict(torch.load('OVS_multimaskSSDU_200.pt'))
+denoiser.eval()
 
 
 

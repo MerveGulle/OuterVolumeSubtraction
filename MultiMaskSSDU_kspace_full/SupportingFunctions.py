@@ -162,7 +162,10 @@ def prepare_train_loaders(dataset,params,g):
 class OVS_DatasetTest():
     def __init__(self,data_path,num_slice):
         self.dir_list = os.listdir(data_path)
-        self.slices = sample(self.dir_list, num_slice)
+        if num_slice == 'all':
+            self.slices = self.dir_list
+        else:
+            self.slices    = sample(self.dir_list, num_slice)
         self.data_path = data_path
           
     def __getitem__(self,index):

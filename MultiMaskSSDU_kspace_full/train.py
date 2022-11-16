@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 ### HYPERPARAMETERS
 params = dict([('num_epoch', 100),
                ('batch_size', 1),
-               ('learning_rate', 1e-3),
+               ('learning_rate', 3e-4),
                ('num_training_slice', 'all'),
                ('num_validation_slice', 'all'),
                ('num_workers', 0),          # It should be 0 for Windows machines
@@ -20,9 +20,9 @@ params = dict([('num_epoch', 100),
 
 ### PATHS 
 # train_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\TrainDataset"
-train_data_path = "/home/naxos2-raid12/glle0001/TrainData/"
-valid_data_path = "/home/naxos2-raid12/glle0001/ValidationData/"
-test_data_path  = "/home/naxos2-raid12/glle0001/TestData/"
+train_data_path = "/home/naxos2-raid12/glle0001/TrainDataset/"
+valid_data_path = "/home/naxos2-raid12/glle0001/ValidationDataset/"
+test_data_path  = "/home/naxos2-raid12/glle0001/TestDataset/"
 
 
 # 0) Fix randomness for reproducible experiment
@@ -48,7 +48,7 @@ validation_loader, validation_datasets= sf.prepare_valid_loaders(validation_data
 denoiser = model.ResNet().to(device)
 denoiser.apply(model.weights_init_normal)
 optimizer = torch.optim.Adam(denoiser.parameters(),lr=params['learning_rate'])
-scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.8)
 
 # 4) Loss Function Definition
 def L1L2Loss(recon, ref):
@@ -60,6 +60,7 @@ loss_arr       = np.zeros(params['num_epoch'])
 loss_arr_valid = np.zeros(params['num_epoch'])
 
 # training
+figure = plt.figure()
 for epoch in range(params['num_epoch']):
     for i, (x0, composite_kspace, sense_map, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(train_loader['train_loader']):
         x0                     = x0[0].to(device)                       # [K,Nx,Ny]
@@ -122,13 +123,20 @@ for epoch in range(params['num_epoch']):
                 loss += L1L2Loss(kspace_loss, composite_kspace*loss_mask[None,...,None])/params['num_mask']
                 
             loss_arr_valid[epoch] += loss.item()/len(validation_datasets['valid_dataset'])
+            
+            plt.clf()
+            n_epoch = np.arange(1,epoch+1)
+            plt.plot(n_epoch,loss_arr[0:epoch],n_epoch,loss_arr_valid[0:epoch])
+            plt.xlabel('epoch')
+            plt.title('Loss Graph')
+            plt.legend(['train loss', 'validation loss'])
+            figure.savefig('loss_graph.png')
         
     if ((epoch+1)%5==0):
         torch.save(denoiser.state_dict(), 'OVS_multimaskSSDU_' + f'{epoch+1:03d}'+ '.pt')
         torch.save(loss_arr, 'train_loss.pt')
         torch.save(loss_arr_valid, 'valid_loss.pt')
         torch.save(L, 'L.pt')
-        breakpoint()
           
     scheduler.step()
     
@@ -140,7 +148,7 @@ for epoch in range(params['num_epoch']):
 
 breakpoint()
 # 6) Plot the Loss Graph
-figure = plt.figure()
+
 n_epoch = np.arange(1,params['num_epoch']+1)
 plt.plot(n_epoch,loss_arr,n_epoch,loss_arr_valid)
 plt.xlabel('epoch')

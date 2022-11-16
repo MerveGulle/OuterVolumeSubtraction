@@ -11,12 +11,12 @@ acs_size = 8 # DC calibration region size
 rho = 0.6    # data consistency / whole mask
 
 # get data indices
-data_indices = loadmat('data_indices.mat')
-_, indices = list(data_indices.items())[3]
-# indices.shape = (3,14)
+train_data_indices = loadmat('train_data_indices.mat')
+_, indices = list(train_data_indices.items())[3]
+# indices.shape = (3,10)
 # indices[0]: subject numbers
 # indices[1]: slice numbers
-# indices[2]: time frame numbers (number of slices x 3)
+# indices[2]: time frame numbers (number of slices x 4)
 
 os.chdir('/home/daedalus1-raid1/akcakaya-group-data/ScannerData/Data/Volunteer/RealTime_fromPK/database_short_axis')
 number_of_subjects = indices.shape[1]
@@ -35,7 +35,7 @@ for sub in np.arange(number_of_subjects):
         
         _, kspace_data = list(realtime_data.items())[1]
         
-        for TF in range(3):
+        for TF in range(4):
             time_frame_no = indices[2,sub_counter][slc_counter,TF]-1
             print('time frame = '+ f'{time_frame_no+1}')
             
@@ -78,7 +78,7 @@ for sub in np.arange(number_of_subjects):
                        "acc_mask": acc_mask,
                        "data_consistency_masks": DC_masks,
                        "sub_slc_tf": sub_slc_tf}
-            data_filename = "/home/naxos2-raid12/glle0001/TrainData/subject_" + str(sub) + "_slice_" + str(slc) + "_" + str(TF+1) + ".mat"
+            data_filename = "/home/naxos2-raid12/glle0001/TrainDataset/subject_" + str(sub) + "_slice_" + str(slc) + "_" + str(TF+1) + ".mat"
             savemat(data_filename, datadir)
         
         slc_counter += 1

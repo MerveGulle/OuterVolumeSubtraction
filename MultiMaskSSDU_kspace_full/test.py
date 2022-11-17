@@ -9,11 +9,11 @@ params = dict([('num_epoch', 100),
                ('learning_rate', 1e-3),
                ('num_training_slice', 'all'),
                ('num_validation_slice', 'all'),
-               ('num_test_slice', 3),
+               ('num_test_slice', 'all'),
                ('num_workers', 0),          # It should be 0 for Windows machines
                ('use_cpu', False),
                ('num_mask', 3),             # number of masks
-               ('T', 2)])                  # number of iterations
+               ('T', 10)])                  # number of iterations
 
 
 ### PATHS 
@@ -32,7 +32,7 @@ test_loader, test_datasets= sf.prepare_test_loaders(test_dataset,params)
 ###############################################################################
 
 denoiser = model.ResNet().to(device)
-denoiser.load_state_dict(torch.load('OVS_multimaskSSDU_040.pt'))
+denoiser.load_state_dict(torch.load('OVS_multimaskSSDU_045.pt'))
 denoiser.eval()
 
 for i, (x0, composite_kspace, sense_map, acc_mask, sub_slc_tf, index) in enumerate(test_loader['test_loader']):

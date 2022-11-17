@@ -166,6 +166,7 @@ class OVS_DatasetTest():
             self.slices = self.dir_list
         else:
             self.slices    = sample(self.dir_list, num_slice)
+        self.num_slice = len(self.slices) 
         self.data_path = data_path
           
     def __getitem__(self,index):
@@ -177,6 +178,9 @@ class OVS_DatasetTest():
         self.x0 = backward(self.composite_kspace*self.acc_mask[...,None], self.sense_maps)
         
         return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.sub_slc_tf, index
+    
+    def __len__(self):
+        return self.num_slice
   
 
 # test dataset loader

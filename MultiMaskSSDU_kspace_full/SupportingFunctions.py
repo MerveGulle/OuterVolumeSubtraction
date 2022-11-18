@@ -3,6 +3,7 @@ import os
 from random import sample
 from scipy.io import loadmat
 from torch.utils.data import DataLoader
+import numpy as np
 
 
 # kspace = fft2(image): FFT of n-slice image to kspace: [n Nx Ny Nc] --> [n Nx Ny Nc]
@@ -175,9 +176,10 @@ class OVS_DatasetTest():
         self.sense_maps = torch.from_numpy(slice_data['sense_maps'])
         self.acc_mask = torch.from_numpy(slice_data['acc_mask'])
         self.sub_slc_tf = torch.from_numpy(slice_data['sub_slc_tf'])
+        self.im_tgrappa = torch.from_numpy(slice_data['im_tgrappa'])
         self.x0 = backward(self.composite_kspace*self.acc_mask[...,None], self.sense_maps)
         
-        return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.sub_slc_tf, index
+        return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.im_tgrappa, self.sub_slc_tf, index
     
     def __len__(self):
         return self.num_slice
@@ -197,3 +199,30 @@ def prepare_test_loaders(test_dataset,params):
     loaders = dict([('test_loader', test_loader)])
 
     return loaders, datasets
+
+
+def cgsense(x0,kspace,Smaps,mask,max_iter=25, lambd = 1e-3):
+    a = x0
+    p = torch.clone(a)
+    r_now = torch.clone(a)
+    xn = torch.zeros_like(a)
+    for i in range(max_iter):
+        delta = torch.sum(r_now*torch.conj(r_now))/torch.sum(a*torch.conj(a)).abs()
+        if delta.real < 1e-5:
+            break
+        # q = (EHE + lambda*I)p
+        q = backward(forward(p,Smaps,mask),Smaps) + lambd*p
+        # rr_pq = r'r/p'q
+        rr_pq = torch.sum(r_now*torch.conj(r_now))/torch.sum(q*torch.conj(p))
+        xn = xn + rr_pq * p
+        r_next = r_now - rr_pq * q
+        # p = r_next + r_next'r_next/r_now'r_now
+        p = r_next + (torch.sum(r_next*torch.conj(r_next))/torch.sum(r_now*torch.conj(r_now))) * p
+        r_now = torch.clone(r_next)
+    return xn
+
+
+# Normalised Mean Square Error (NMSE)
+# gives the nmse between x and xref
+def nmse(x,xref):
+    return np.sum((np.abs(x)-np.abs(xref))**2) / np.sum(np.abs(xref)**2)

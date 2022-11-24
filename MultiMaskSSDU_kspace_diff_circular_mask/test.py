@@ -20,7 +20,7 @@ params = dict([('num_epoch', 100),
 
 
 ### PATHS 
-test_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\TestDataset"
+test_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\TestDatasetCircularMask"
 # test_data_path  = "/home/naxos2-raid12/glle0001/TestData/"
 
 # 1) Device configuration

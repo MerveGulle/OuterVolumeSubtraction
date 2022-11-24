@@ -20,9 +20,9 @@ params = dict([('num_epoch', 100),
 
 ### PATHS 
 # train_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\TrainDataset"
-train_data_path = "/home/naxos2-raid12/glle0001/TrainDataset/"
-valid_data_path = "/home/naxos2-raid12/glle0001/ValidationDataset/"
-test_data_path  = "/home/naxos2-raid12/glle0001/TestDataset/"
+train_data_path = "/home/naxos2-raid12/glle0001/TrainDatasetCircularMask/"
+valid_data_path = "/home/naxos2-raid12/glle0001/ValidationDatasetCircularMask/"
+test_data_path  = "/home/naxos2-raid12/glle0001/TestDatasetCircularMask/"
 
 
 # 0) Fix randomness for reproducible experiment

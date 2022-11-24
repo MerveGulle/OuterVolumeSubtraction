@@ -37,12 +37,15 @@ class OVS_DatasetTrain():
         self.data_path = data_path
           
     def __getitem__(self,index):
-        slice_data = loadmat(self.data_path + os.sep + self.slices[index])
-        self.composite_kspace = torch.from_numpy(slice_data['composite_kspace'])
-        self.sense_maps = torch.from_numpy(slice_data['sense_maps'])
-        self.acc_mask = torch.from_numpy(slice_data['acc_mask'])
+        slice_data                  = loadmat(self.data_path + os.sep + self.slices[index])
+        self.diff_com_kspace        = torch.from_numpy(slice_data['diff_com_kspace'])
+        self.sense_maps_full        = torch.from_numpy(slice_data['sense_maps_full'])
+        self.sense_maps_diff        = torch.from_numpy(slice_data['sense_maps_diff'])
+        self.composite_image        = torch.from_numpy(slice_data['composite_image'])
+        self.acc_mask               = torch.from_numpy(slice_data['acc_mask'])
+        self.ovs_mask               = torch.from_numpy(slice_data['ovs_mask'])
         self.data_consistency_masks = torch.from_numpy(slice_data['data_consistency_masks'])
-        self.sub_slc_tf = torch.from_numpy(slice_data['sub_slc_tf'])
+        self.sub_slc_tf             = torch.from_numpy(slice_data['sub_slc_tf'])
         Nx, Ny = self.acc_mask.shape
         K = (self.data_consistency_masks).shape[2]
         acc_kspace = self.composite_kspace[...,None]*self.data_consistency_masks[None,:,:,None,:]
@@ -50,7 +53,7 @@ class OVS_DatasetTrain():
         for k in range(K):
             self.x0[2*k:2*k+2] = backward(acc_kspace[...,k],self.sense_maps)
         
-        return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.data_consistency_masks, self.sub_slc_tf, index
+        return self.x0, self.diff_com_kspace, self.sense_maps_full, self.sense_maps_diff, self.composite_image, self.acc_mask, self.ovs_mask, self.data_consistency_masks, self.sub_slc_tf, index
     
     def __len__(self):
         return self.num_slice 
@@ -59,7 +62,7 @@ class OVS_DatasetTrain():
 def prepare_train_loaders(train_dataset,params):
     train_loader  = DataLoader(dataset       = train_dataset,
                              batch_size      = params['batch_size'],
-                             shuffle         = False,
+                             shuffle         = True,
                              drop_last       = True,
                              #worker_init_fn  = seed_worker,
                              num_workers     = params['num_workers'])
@@ -82,12 +85,15 @@ class OVS_DatasetValidation():
         self.data_path = data_path
           
     def __getitem__(self,index):
-        slice_data = loadmat(self.data_path + os.sep + self.slices[index])
-        self.composite_kspace = torch.from_numpy(slice_data['composite_kspace'])
-        self.sense_maps = torch.from_numpy(slice_data['sense_maps'])
-        self.acc_mask = torch.from_numpy(slice_data['acc_mask'])
+        slice_data                  = loadmat(self.data_path + os.sep + self.slices[index])
+        self.diff_com_kspace        = torch.from_numpy(slice_data['diff_com_kspace'])
+        self.sense_maps_full        = torch.from_numpy(slice_data['sense_maps_full'])
+        self.sense_maps_diff        = torch.from_numpy(slice_data['sense_maps_diff'])
+        self.composite_image        = torch.from_numpy(slice_data['composite_image'])
+        self.acc_mask               = torch.from_numpy(slice_data['acc_mask'])
+        self.ovs_mask               = torch.from_numpy(slice_data['ovs_mask'])
         self.data_consistency_masks = torch.from_numpy(slice_data['data_consistency_masks'])
-        self.sub_slc_tf = torch.from_numpy(slice_data['sub_slc_tf'])
+        self.sub_slc_tf             = torch.from_numpy(slice_data['sub_slc_tf'])
         Nx, Ny = self.acc_mask.shape
         K = (self.data_consistency_masks).shape[2]
         acc_kspace = self.composite_kspace[...,None]*self.data_consistency_masks[None,:,:,None,:]
@@ -95,7 +101,7 @@ class OVS_DatasetValidation():
         for k in range(K):
             self.x0[2*k:2*k+2] = backward(acc_kspace[...,k],self.sense_maps)
         
-        return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.data_consistency_masks, self.sub_slc_tf, index
+        return self.x0, self.diff_com_kspace, self.sense_maps_full, self.sense_maps_diff, self.composite_image, self.acc_mask, self.ovs_mask, self.data_consistency_masks, self.sub_slc_tf, index
     
     def __len__(self):
         return self.num_slice 
@@ -105,7 +111,7 @@ class OVS_DatasetValidation():
 def prepare_valid_loaders(valid_dataset,params):
     valid_loader  = DataLoader(dataset       = valid_dataset,
                              batch_size      = params['batch_size'],
-                             shuffle         = False,
+                             shuffle         = True,
                              drop_last       = True,
                              #worker_init_fn  = seed_worker,
                              num_workers     = params['num_workers'])
@@ -172,14 +178,17 @@ class OVS_DatasetTest():
           
     def __getitem__(self,index):
         slice_data = loadmat(self.data_path + os.sep + self.slices[index])
-        self.composite_kspace = torch.from_numpy(slice_data['composite_kspace'])
-        self.sense_maps = torch.from_numpy(slice_data['sense_maps'])
-        self.acc_mask = torch.from_numpy(slice_data['acc_mask'])
-        self.sub_slc_tf = torch.from_numpy(slice_data['sub_slc_tf'])
-        self.im_tgrappa = torch.from_numpy(slice_data['im_tgrappa'])
-        self.x0 = backward(self.composite_kspace*self.acc_mask[...,None], self.sense_maps)
+        self.diff_com_kspace = torch.from_numpy(slice_data['diff_com_kspace'])
+        self.sense_maps_full = torch.from_numpy(slice_data['sense_maps_full'])
+        self.sense_maps_diff = torch.from_numpy(slice_data['sense_maps_diff'])
+        self.composite_image = torch.from_numpy(slice_data['composite_image'])
+        self.acc_mask        = torch.from_numpy(slice_data['acc_mask'])
+        self.ovs_mask        = torch.from_numpy(slice_data['ovs_mask'])
+        self.im_tgrappa      = torch.from_numpy(slice_data['im_tgrappa'])
+        self.sub_slc_tf      = torch.from_numpy(slice_data['sub_slc_tf'])
+        self.x0              = backward(self.composite_kspace*self.acc_mask[...,None], self.sense_maps)
         
-        return self.x0, self.composite_kspace, self.sense_maps, self.acc_mask, self.im_tgrappa, self.sub_slc_tf, index
+        return self.x0, self.diff_com_kspace, self.sense_maps_full, self.sense_maps_diff, self.composite_image, self.acc_mask, self.ovs_mask, self.im_tgrappa, self.sub_slc_tf, index
     
     def __len__(self):
         return self.num_slice

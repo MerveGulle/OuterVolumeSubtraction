@@ -38,29 +38,17 @@ def DC_layer(x0,zn,L,S,mask,cg_iter=10):
         r_now = torch.clone(r_next)
     return xn
 
-# complex 1 channel to real 2 channels
-def ch1to2(data1):       
-    return torch.cat((data1.real,data1.imag),0)
-# real 2 channels to complex 1 channel
-def ch2to1(data2):       
-    return data2[0:1,:,:] + 1j * data2[1:2,:,:] 
 
-
-# x: complex [2 Nx Ny] ---> y: real [2 2Nx Ny]
+# x: complex [n 1 Nx Ny] ---> y: real [n 2 Nx Ny]
 # prepare the DC layer output for the CNN denoiser
 def complex2real(x):
-    y = torch.cat((x[:,0:1],x[:,1:2]),2)
-    y = torch.cat((y.real,y.imag),1)
-    return y
+    return torch.cat((x.real,x.imag),1)
 
 
-# x: real [2 2Nx Ny] ---> y: complex [2 Nx Ny]
+# x: real [n 2 Nx Ny] ---> y: complex [n 1 Nx Ny]
 # prepare the CNN denoiser output for the DC layer
 def real2complex(x):
-    Nx = x.shape[2]//2
-    y = x[:,0:1] + 1j*x[:,1:2]
-    y = torch.cat((y[:,:,0:Nx],y[:,:,Nx:2*Nx]),1)
-    return y
+    return x[:,0:1] + 1j*x[:,1:2]
 
 
 # define RB:residual block (conv + ReLU + conv + xScale)

@@ -38,13 +38,6 @@ def DC_layer(x0,zn,L,S,mask,cg_iter=10):
         r_now = torch.clone(r_next)
     return xn
 
-# complex 1 channel to real 2 channels
-def ch1to2(data1):       
-    return torch.cat((data1.real,data1.imag),0)
-# real 2 channels to complex 1 channel
-def ch2to1(data2):       
-    return data2[0:1,:,:] + 1j * data2[1:2,:,:] 
-
 
 # x: complex [2 Nx Ny] ---> y: real [2 2Nx Ny]
 # prepare the DC layer output for the CNN denoiser

@@ -8,15 +8,16 @@ from matplotlib import pyplot as plt
 
 
 ### HYPERPARAMETERS
-params = dict([('num_epoch', 100),
+params = dict([('sense_maps_type', 'full'),     # 'full', 'mask', 'diff'
+               ('num_epoch', 100),
                ('batch_size', 1),
                ('learning_rate', 3e-4),
                ('num_training_slice', 'all'),
                ('num_validation_slice', 'all'),
-               ('num_workers', 0),          # It should be 0 for Windows machines
+               ('num_workers', 0),              # It should be 0 for Windows machines
                ('use_cpu', False),
-               ('num_mask', 3),             # number of masks
-               ('T', 10)])                  # number of iterations
+               ('num_mask', 3),                 # number of masks
+               ('T', 10)])                      # number of iterations
 
 ### PATHS 
 # train_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\TrainDataset"
@@ -61,11 +62,13 @@ loss_arr_valid = np.zeros(params['num_epoch'])
 # training
 figure = plt.figure()
 for epoch in range(params['num_epoch']):
-    for i, (x0, composite_kspace, sense_map, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(train_loader['train_loader']):
+    for i, (x0, composite_kspace, sense_maps_full, sense_maps_diff, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(train_loader['train_loader']):
         x0                     = x0[0].to(device)                       # [K,Nx,Ny]
-        composite_kspace       = composite_kspace[0].to(device)         # [1,Nx,Ny,Nc]
-        sense_map              = sense_map[0].to(device)                # [2,Nx,Ny,Nc]
+        diff_com_kspace        = diff_com_kspace[0].to(device)          # [1,Nx,Ny,Nc]
+        sense_maps_full        = sense_maps_full[0].to(device)          # [1,Nx,Ny,Nc]
+        sense_maps_diff        = sense_maps_diff[0].to(device)          # [1,Nx,Ny,Nc]
         acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
+        ovs_mask               = ovs_mask[0].to(device)                 # [Nx,Ny]
         data_consistency_masks = data_consistency_masks[0].to(device)   # [Nx,Ny,K]
         # Forward pass
         loss = 0

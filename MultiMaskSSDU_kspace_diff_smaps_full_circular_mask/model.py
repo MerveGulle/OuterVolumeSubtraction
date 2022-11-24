@@ -6,20 +6,20 @@ import SupportingFunctions as sf
 #                    |  ______________                          __________  |
 #        x(n)        | |              |          z(n)          |          | |    x(n+1)
 #   ---------------->| | CNN denoiser | ---------------------> | DC layer | |-------------->
-#     [2 2Nx Ny]  |  | |______________| [2 2Nx Ny]-->[2 Nx Ny] |__________| |  | [2 Nx Ny]
+#     [2 Nx Ny]   |  | |______________| [2 Nx Ny]-->[1 Nx Ny]  |__________| |  | [2 Nx Ny]
 #       (real)    |  |                    (real)  to (complex)              |  | (complex)
 #                 |  |______________________________________________________|  |
 #                 |----------<--------<--------<--------<---------<------------|
-#                          (complex) [2 Nx Ny] to (real) [2 2Nx 2Ny]
+#                           (complex) [1 Nx Ny] to (real) [2 Nx Ny]
 
 
-# x0      : initial solution [2 Nx Ny]
-# zn      : Output of nth denoiser block [2 Nx Ny]
+# x0      : initial solution [1 Nx Ny]
+# zn      : Output of nth denoiser block [1 Nx Ny]
 # L       : regularization coefficient=quadratic relaxation parameter
-# S       : sensitivity maps [2 Nx Ny Nc]
+# S       : sensitivity maps [1 Nx Ny Nc]
 # mask    : acceleration mask for forward operator [Nx Ny]
 # cg_iter : number of iterations
-# xn      : denoised image [2 Nx Ny] 
+# xn      : denoised image [1 Nx Ny] 
 # (EHE + LI)xn = x0 + L*zn, DC_layer solves xn
 def DC_layer(x0,zn,L,S,mask,cg_iter=10):
     p = x0 + L * zn
@@ -52,8 +52,6 @@ def real2complex(x):
 
 
 # define RB:residual block (conv + ReLU + conv + xScale)
-# input(xn) : output of DC layer, noisy image [2 2*Nx Ny]
-# output(zn): denoised image [2 2*Nx Ny]
 # convolutional blocks share the same coefficients
 class RB(nn.Module):
     def __init__(self, C=0.1):

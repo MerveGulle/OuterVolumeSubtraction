@@ -126,7 +126,7 @@ elif (mask_type == "no_diaphragm"):
 elif (mask_type == "outer_volume"):
     k = 8
 # full smaps
-Smaps = espirit(y_com1[None,...], 8,44, 0.02, 0.95)
+Smaps = espirit(y_com1[None,...], 8 ,44, 0.02, 0.95)
 Smaps = Smaps[0,:,:,:,0:2]
 # masked smaps
 Smaps_mask = Smaps * (1 - ovs_mask[...,None,None])

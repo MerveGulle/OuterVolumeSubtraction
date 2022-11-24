@@ -256,8 +256,3 @@ def coilMaps(kspace, ACS, center):
     maps = img_low / rssq(img_low + eps)[...,None]
     return maps
 
-
-# Normalised Mean Square Error (NMSE)
-# gives the nmse between x and xref
-def nmse(x,xref):
-    return np.sum((np.abs(x)-np.abs(xref))**2) / np.sum(np.abs(xref)**2)

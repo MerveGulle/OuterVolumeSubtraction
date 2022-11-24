@@ -2,4 +2,4 @@
 *.mat
 *.png
 *.h5
-/Results
+/MultiMaskSSDU_kspace_full/Results

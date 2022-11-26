@@ -8,8 +8,7 @@ from matplotlib import pyplot as plt
 
 
 ### HYPERPARAMETERS
-params = dict([('sense_maps_type', 'full'),     # 'full', 'mask', 'diff'
-               ('num_epoch', 100),
+params = dict([('num_epoch', 100),
                ('batch_size', 1),
                ('learning_rate', 3e-4),
                ('num_training_slice', 'all'),
@@ -58,31 +57,30 @@ def L1L2Loss(recon, ref):
 # Set the initial loss values
 loss_arr       = np.zeros(params['num_epoch'])
 loss_arr_valid = np.zeros(params['num_epoch'])
+min_valid_loss = torch.tensor(float('inf'))
 
 # training
 figure = plt.figure()
 for epoch in range(params['num_epoch']):
-    for i, (x0, composite_kspace, sense_maps_full, sense_maps_diff, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(train_loader['train_loader']):
+    for i, (x0, diff_com_kspace, sense_maps_full, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(train_loader['train_loader']):
         x0                     = x0[0].to(device)                       # [K,Nx,Ny]
         diff_com_kspace        = diff_com_kspace[0].to(device)          # [1,Nx,Ny,Nc]
         sense_maps_full        = sense_maps_full[0].to(device)          # [1,Nx,Ny,Nc]
-        sense_maps_diff        = sense_maps_diff[0].to(device)          # [1,Nx,Ny,Nc]
         acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
-        ovs_mask               = ovs_mask[0].to(device)                 # [Nx,Ny]
         data_consistency_masks = data_consistency_masks[0].to(device)   # [Nx,Ny,K]
         # Forward pass
         loss = 0
         for k in range(params['num_mask']):
             loss_mask = acc_mask - data_consistency_masks[...,k]
-            xk0 = x0[2*k:2*k+2]   # x0 for kth DC mask
+            xk0 = x0[k:k+1]       # x0 for kth DC mask
             xt = xk0              # iteration starts with xt
             for t in range(params['T']):
                 L, zt = denoiser(xt[None,...])
-                xt = model.DC_layer(xk0,zt[0],L,sense_map,data_consistency_masks[...,k])
+                xt = model.DC_layer(xk0,zt[0],L,sense_maps_full,data_consistency_masks[...,k])
             # loss calculation for kth mask
-            kspace_loss = sf.forward(xt, sense_map, loss_mask)
+            kspace_loss = sf.forward(xt, sense_maps_full, loss_mask)
             # loss calculation
-            loss += L1L2Loss(kspace_loss, composite_kspace*loss_mask[None,...,None])/params['num_mask']
+            loss += L1L2Loss(kspace_loss, diff_com_kspace*loss_mask[None,...,None])/params['num_mask']
             
         optimizer.zero_grad()
         
@@ -103,26 +101,26 @@ for epoch in range(params['num_epoch']):
         # Optimize
         optimizer.step()
 
-    for i, (x0, composite_kspace, sense_map, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(validation_loader['valid_loader']):
+    for i, (x0, diff_com_kspace, sense_maps_full, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(validation_loader['valid_loader']):
         with torch.no_grad():
             x0                     = x0[0].to(device)                       # [K,Nx,Ny]
-            composite_kspace       = composite_kspace[0].to(device)         # [1,Nx,Ny,Nc]
-            sense_map              = sense_map[0].to(device)                # [2,Nx,Ny,Nc]
+            diff_com_kspace        = diff_com_kspace[0].to(device)          # [1,Nx,Ny,Nc]
+            sense_maps_full        = sense_maps_full[0].to(device)          # [1,Nx,Ny,Nc]
             acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
             data_consistency_masks = data_consistency_masks[0].to(device)   # [Nx,Ny,K]
             # Forward pass
             loss = 0
             for k in range(params['num_mask']):
                 loss_mask = acc_mask - data_consistency_masks[...,k]
-                xk0 = x0[2*k:2*k+2]   # x0 for kth DC mask
+                xk0 = x0[k:k+1]       # x0 for kth DC mask
                 xt = xk0              # iteration starts with xt
                 for t in range(params['T']):
                     L, zt = denoiser(xt[None,...])
-                    xt = model.DC_layer(xk0,zt[0],L,sense_map,data_consistency_masks[...,k])
+                    xt = model.DC_layer(xk0,zt[0],L,sense_maps_full,data_consistency_masks[...,k])
                 # loss calculation for kth mask
-                kspace_loss = sf.forward(xt, sense_map, loss_mask)
+                kspace_loss = sf.forward(xt, sense_maps_full, loss_mask)
                 # loss calculation
-                loss += L1L2Loss(kspace_loss, composite_kspace*loss_mask[None,...,None])/params['num_mask']
+                loss += L1L2Loss(kspace_loss, diff_com_kspace*loss_mask[None,...,None])/params['num_mask']
                 
             loss_arr_valid[epoch] += loss.item()/len(validation_datasets['valid_dataset'])
             
@@ -134,7 +132,9 @@ for epoch in range(params['num_epoch']):
             plt.legend(['train loss', 'validation loss'])
             figure.savefig('loss_graph.png')
         
-    if ((epoch+1)%5==0):
+    # if ((epoch+1)%5==0):
+    if (min_valid_loss>loss_arr_valid[epoch]):
+        min_valid_loss = loss_arr_valid[epoch]
         torch.save(denoiser.state_dict(), 'OVS_multimaskSSDU_' + f'{epoch+1:03d}'+ '.pt')
         torch.save(loss_arr, 'train_loss.pt')
         torch.save(loss_arr_valid, 'valid_loss.pt')

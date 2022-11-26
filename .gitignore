@@ -2,4 +2,6 @@
 *.mat
 *.png
 *.h5
+*.pt
 /MultiMaskSSDU_kspace_full/Results
+/MultiMaskSSDU_kspace_diff_smaps_full_circular_mask/Results

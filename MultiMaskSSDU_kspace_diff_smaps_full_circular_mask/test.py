@@ -20,8 +20,8 @@ params = dict([('num_epoch', 100),
 
 
 ### PATHS 
-test_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\TestDatasetCircularMask"
-# test_data_path  = "/home/naxos2-raid12/glle0001/TestData/"
+test_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_diff_smaps_full_circular_mask\TestDatasetCircularMask"
+# test_data_path  = "/home/naxos2-raid12/glle0001/TestDataCircularMask/"
 
 # 1) Device configuration
 device = torch.device('cuda' if (torch.cuda.is_available() and (not(params['use_cpu']))) else 'cpu')
@@ -35,56 +35,60 @@ test_loader, test_datasets= sf.prepare_test_loaders(test_dataset,params)
 ###############################################################################
 
 denoiser = model.ResNet().to(device)
-denoiser.load_state_dict(torch.load('OVS_multimaskSSDU_090.pt'))
+denoiser.load_state_dict(torch.load('OVS_multimaskSSDU_087.pt'))
 denoiser.eval()
 
-for i, (x0, composite_kspace, sense_map, acc_mask, im_tgrappa, sub_slc_tf, index) in enumerate(test_loader['test_loader']):
+for i, (x0, diff_com_kspace, sense_maps_full, composite_image, acc_mask, ovs_mask, im_tgrappa, sub_slc_tf, index) in enumerate(test_loader['test_loader']):
     with torch.no_grad():
         # Forward pass
-        x0                     = x0[0].to(device)                       # [2,Nx,Ny]
-        composite_kspace       = composite_kspace[0].to(device)         # [1,Nx,Ny,Nc]
-        sense_map              = sense_map[0].to(device)                # [2,Nx,Ny,Nc]
+        x0                     = x0[0].to(device)                       # [1,Nx,Ny]
+        diff_com_kspace        = diff_com_kspace[0].to(device)          # [1,Nx,Ny,Nc]
+        sense_maps_full        = sense_maps_full[0].to(device)          # [1,Nx,Ny,Nc]
+        composite_image        = composite_image[0].to(device).detach().cpu().numpy()          # [1,Nx,Ny]
         acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
-        im_tgrappa             = im_tgrappa[0].to(device)
+        ovs_mask               = ovs_mask[0].to(device).detach().cpu().numpy()              # [Nx,Ny]
+        im_tgrappa             = im_tgrappa[0].to(device)               # [Nx,Ny]
         # Forward pass
         xt = torch.clone(x0)
         for t in range(params['T']):
             L, zt = denoiser(xt[None,...])
-            xt = model.DC_layer(x0,zt[0],L,sense_map,acc_mask)
-        
+            xt = model.DC_layer(x0,zt[0],L,sense_maps_full,acc_mask)
+        breakpoint()
+        background = composite_image[0]*ovs_mask
         zerofilled = x0[0].detach().cpu().numpy()
-        cg_sense = sf.cgsense(x0,composite_kspace,sense_map,acc_mask)[0].detach().cpu().numpy()
+        cg_sense = sf.cgsense(x0,diff_com_kspace,sense_maps_full,acc_mask)[0].detach().cpu().numpy()
         SSDU = xt[0].detach().cpu().numpy()
         im_tgrappa = im_tgrappa.detach().cpu().numpy()
         
-        data_range = np.abs(im_tgrappa).max() - np.abs(im_tgrappa).min()
-        vmax = np.abs(SSDU).max() * 0.3
+        im_tgrappa_inner = im_tgrappa*(1-ovs_mask)
+        data_range = np.abs(im_tgrappa_inner).max() - np.abs(im_tgrappa_inner).min()
+        vmax = np.abs(im_tgrappa).max() * 0.3
         figure = plt.figure(figsize=(9,7))
         plt.subplot(1,4,1)
-        plt.imshow(np.abs(zerofilled), cmap='gray', vmax=vmax/4)
+        plt.imshow(np.abs(zerofilled)+np.abs(background), cmap='gray', vmax=vmax)
         ax = plt.gca()
-        NMSE = sf.nmse(zerofilled,im_tgrappa)
-        SSIM = ssim(np.abs(im_tgrappa), np.abs(zerofilled), data_range=data_range)
+        NMSE = sf.nmse(zerofilled,im_tgrappa_inner)
+        SSIM = ssim(np.abs(im_tgrappa_inner), np.abs(zerofilled), data_range=data_range)
         plt.text(0.5, 0.05, 'NMSE:'+f'{NMSE:,.3f}'+'\nSSIM:'+f'{SSIM:,.3f}', color = 'white', 
                  horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
         plt.axis('off')
         plt.title('Zerofilled')
         
         plt.subplot(1,4,2)
-        plt.imshow(np.abs(cg_sense), cmap='gray', vmax=vmax)
+        plt.imshow(np.abs(cg_sense)+np.abs(background), cmap='gray', vmax=vmax)
         ax = plt.gca()
-        NMSE = sf.nmse(cg_sense,im_tgrappa)
-        SSIM = ssim(np.abs(im_tgrappa), np.abs(cg_sense), data_range=data_range)
+        NMSE = sf.nmse(cg_sense,im_tgrappa_inner)
+        SSIM = ssim(np.abs(im_tgrappa_inner), np.abs(cg_sense), data_range=data_range)
         plt.text(0.5, 0.05, 'NMSE:'+f'{NMSE:,.3f}'+'\nSSIM:'+f'{SSIM:,.3f}', color = 'white', 
                  horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
         plt.axis('off')
         plt.title('CG-SENSE')
         
         plt.subplot(1,4,3)
-        plt.imshow(np.abs(SSDU), cmap='gray', vmax=vmax)
+        plt.imshow(np.abs(SSDU)+np.abs(background), cmap='gray', vmax=vmax)
         ax = plt.gca()
-        NMSE = sf.nmse(SSDU,im_tgrappa)
-        SSIM = ssim(np.abs(im_tgrappa), np.abs(SSDU), data_range=data_range)
+        NMSE = sf.nmse(SSDU,im_tgrappa_inner)
+        SSIM = ssim(np.abs(im_tgrappa_inner), np.abs(SSDU), data_range=data_range)
         plt.text(0.5, 0.05, 'NMSE:'+f'{NMSE:,.3f}'+'\nSSIM:'+f'{SSIM:,.3f}', color = 'white', 
                  horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
         plt.axis('off')
@@ -103,8 +107,8 @@ for i, (x0, composite_kspace, sense_map, acc_mask, im_tgrappa, sub_slc_tf, index
         tf  = sub_slc_tf[0,0,2].detach().cpu().numpy()
         plt.suptitle('Subject:'+f'{sub}'+', Slice:'+f'{slc}'+', Time Frame:'+ f'{tf}', fontsize=14)
         
-        plt.savefig("C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\Results\images\subject_"+str(sub)+"_slice_"+str(slc)+"_TF_"+str(tf)+".png")
-        plt.close()
+        #plt.savefig("C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\Results\images\subject_"+str(sub)+"_slice_"+str(slc)+"_TF_"+str(tf)+".png")
+        #plt.close()
 
 
 

@@ -27,7 +27,7 @@ def backward(kspace,Smaps):
 
 # train dataset generator
 class OVS_DatasetTrain():
-    def __init__(self,data_path,num_slice):
+    def __init__(self,data_path,sense_maps_type,num_slice):
         self.dir_list  = os.listdir(data_path)
         if num_slice == 'all':
             self.slices = self.dir_list
@@ -35,11 +35,15 @@ class OVS_DatasetTrain():
             self.slices    = sample(self.dir_list, num_slice)
         self.num_slice = len(self.slices) 
         self.data_path = data_path
+        self.sense_maps_type = sense_maps_type
           
     def __getitem__(self,index):
         slice_data                  = loadmat(self.data_path + os.sep + self.slices[index])
         self.diff_com_kspace        = torch.from_numpy(slice_data['diff_com_kspace'])
-        self.sense_maps_full        = torch.from_numpy(slice_data['sense_maps_full'])
+        if (self.sense_maps_type == 'sense_maps_mask'):
+            self.sense_maps         = torch.from_numpy(slice_data['sense_maps_full'])*torch.from_numpy(1.0-slice_data['ovs_mask'])[None,:,:,None]
+        else:
+            self.sense_maps             = torch.from_numpy(slice_data[self.sense_maps_type])
         self.acc_mask               = torch.from_numpy(slice_data['acc_mask'])
         self.data_consistency_masks = torch.from_numpy(slice_data['data_consistency_masks'])
         self.sub_slc_tf             = torch.from_numpy(slice_data['sub_slc_tf'])
@@ -48,9 +52,9 @@ class OVS_DatasetTrain():
         acc_kspace = self.diff_com_kspace[...,None]*self.data_consistency_masks[None,:,:,None,:]
         self.x0 = torch.zeros([K,Nx,Ny], dtype=torch.complex64)
         for k in range(K):
-            self.x0[k:k+1] = backward(acc_kspace[...,k],self.sense_maps_full)
+            self.x0[k:k+1] = backward(acc_kspace[...,k],self.sense_maps)
         
-        return self.x0, self.diff_com_kspace, self.sense_maps_full, self.acc_mask, self.data_consistency_masks, self.sub_slc_tf, index
+        return self.x0, self.diff_com_kspace, self.sense_maps, self.acc_mask, self.data_consistency_masks, self.sub_slc_tf, index
     
     def __len__(self):
         return self.num_slice 
@@ -72,7 +76,7 @@ def prepare_train_loaders(train_dataset,params):
 
 # validation dataset generator
 class OVS_DatasetValidation():
-    def __init__(self,data_path,num_slice):
+    def __init__(self,data_path,sense_maps_type,num_slice):
         self.dir_list = os.listdir(data_path)
         if num_slice == 'all':
             self.slices = self.dir_list
@@ -80,11 +84,15 @@ class OVS_DatasetValidation():
             self.slices    = sample(self.dir_list, num_slice)
         self.num_slice = len(self.slices) 
         self.data_path = data_path
+        self.sense_maps_type = sense_maps_type
           
     def __getitem__(self,index):
         slice_data                  = loadmat(self.data_path + os.sep + self.slices[index])
         self.diff_com_kspace        = torch.from_numpy(slice_data['diff_com_kspace'])
-        self.sense_maps_full        = torch.from_numpy(slice_data['sense_maps_full'])
+        if (self.sense_maps_type == 'sense_maps_mask'):
+            self.sense_maps         = torch.from_numpy(slice_data['sense_maps_full'])*torch.from_numpy(1.0-slice_data['ovs_mask'])[None,:,:,None]
+        else:
+            self.sense_maps             = torch.from_numpy(slice_data[self.sense_maps_type])
         self.acc_mask               = torch.from_numpy(slice_data['acc_mask'])
         self.data_consistency_masks = torch.from_numpy(slice_data['data_consistency_masks'])
         self.sub_slc_tf             = torch.from_numpy(slice_data['sub_slc_tf'])
@@ -93,9 +101,9 @@ class OVS_DatasetValidation():
         acc_kspace = self.diff_com_kspace[...,None]*self.data_consistency_masks[None,:,:,None,:]
         self.x0 = torch.zeros([K,Nx,Ny], dtype=torch.complex64)
         for k in range(K):
-            self.x0[k:k+1] = backward(acc_kspace[...,k],self.sense_maps_full)
+            self.x0[k:k+1] = backward(acc_kspace[...,k],self.sense_maps)
         
-        return self.x0, self.diff_com_kspace, self.sense_maps_full, self.acc_mask, self.data_consistency_masks, self.sub_slc_tf, index
+        return self.x0, self.diff_com_kspace, self.sense_maps, self.acc_mask, self.data_consistency_masks, self.sub_slc_tf, index
     
     def __len__(self):
         return self.num_slice 
@@ -161,7 +169,7 @@ def prepare_train_loaders(dataset,params,g):
 
 # test dataset generator
 class OVS_DatasetTest():
-    def __init__(self,data_path,num_slice):
+    def __init__(self,data_path,sense_maps_type,num_slice):
         self.dir_list = os.listdir(data_path)
         if num_slice == 'all':
             self.slices = self.dir_list
@@ -169,19 +177,23 @@ class OVS_DatasetTest():
             self.slices    = sample(self.dir_list, num_slice)
         self.num_slice = len(self.slices) 
         self.data_path = data_path
+        self.sense_maps_type = sense_maps_type
           
     def __getitem__(self,index):
         slice_data           = loadmat(self.data_path + os.sep + self.slices[index])
         self.diff_com_kspace = torch.from_numpy(slice_data['diff_com_kspace'])
-        self.sense_maps_full = torch.from_numpy(slice_data['sense_maps_full'])
+        if (self.sense_maps_type == 'sense_maps_mask'):
+            self.sense_maps         = torch.from_numpy(slice_data['sense_maps_full'])*torch.from_numpy(1.0-slice_data['ovs_mask'])[None,:,:,None]
+        else:
+            self.sense_maps             = torch.from_numpy(slice_data[self.sense_maps_type])
         self.composite_image = torch.from_numpy(slice_data['composite_image'])
         self.acc_mask        = torch.from_numpy(slice_data['acc_mask'])
         self.ovs_mask        = torch.from_numpy(slice_data['ovs_mask'])
         self.im_tgrappa      = torch.from_numpy(slice_data['im_tgrappa'])
         self.sub_slc_tf      = torch.from_numpy(slice_data['sub_slc_tf'])
-        self.x0              = backward(self.diff_com_kspace*self.acc_mask[...,None], self.sense_maps_full)
+        self.x0              = backward(self.diff_com_kspace*self.acc_mask[...,None], self.sense_maps)
         
-        return self.x0, self.diff_com_kspace, self.sense_maps_full, self.composite_image, self.acc_mask, self.ovs_mask, self.im_tgrappa, self.sub_slc_tf, index
+        return self.x0, self.diff_com_kspace, self.sense_maps, self.composite_image, self.acc_mask, self.ovs_mask, self.im_tgrappa, self.sub_slc_tf, index
     
     def __len__(self):
         return self.num_slice

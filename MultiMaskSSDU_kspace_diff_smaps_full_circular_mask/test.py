@@ -7,7 +7,8 @@ from skimage.metrics import structural_similarity as ssim
 
 
 ### HYPERPARAMETERS
-params = dict([('num_epoch', 100),
+params = dict([('sense_maps_type', 'sense_maps_mask'),  # 'sense_maps_full', 'sense_maps_diff', 'sense_maps_mask'
+               ('num_epoch', 100),
                ('batch_size', 1),
                ('learning_rate', 1e-3),
                ('num_training_slice', 'all'),
@@ -27,7 +28,7 @@ test_data_path = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_diff_smaps_full_cir
 device = torch.device('cuda' if (torch.cuda.is_available() and (not(params['use_cpu']))) else 'cpu')
 
 # 2) Load the Train & Validation Data
-test_dataset = sf.OVS_DatasetTest(test_data_path, params['num_test_slice'])
+test_dataset = sf.OVS_DatasetTest(test_data_path, params['sense_maps_type'], params['num_test_slice'])
 test_loader, test_datasets= sf.prepare_test_loaders(test_dataset,params)
 
 ###############################################################################
@@ -38,12 +39,12 @@ denoiser = model.ResNet().to(device)
 denoiser.load_state_dict(torch.load('OVS_multimaskSSDU_087.pt'))
 denoiser.eval()
 
-for i, (x0, diff_com_kspace, sense_maps_full, composite_image, acc_mask, ovs_mask, im_tgrappa, sub_slc_tf, index) in enumerate(test_loader['test_loader']):
+for i, (x0, diff_com_kspace, sense_maps, composite_image, acc_mask, ovs_mask, im_tgrappa, sub_slc_tf, index) in enumerate(test_loader['test_loader']):
     with torch.no_grad():
         # Forward pass
         x0                     = x0[0].to(device)                       # [1,Nx,Ny]
         diff_com_kspace        = diff_com_kspace[0].to(device)          # [1,Nx,Ny,Nc]
-        sense_maps_full        = sense_maps_full[0].to(device)          # [1,Nx,Ny,Nc]
+        sense_maps             = sense_maps[0].to(device)               # [1,Nx,Ny,Nc]
         composite_image        = composite_image[0].to(device).detach().cpu().numpy()          # [1,Nx,Ny]
         acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
         ovs_mask               = ovs_mask[0].to(device).detach().cpu().numpy()              # [Nx,Ny]
@@ -52,11 +53,11 @@ for i, (x0, diff_com_kspace, sense_maps_full, composite_image, acc_mask, ovs_mas
         xt = torch.clone(x0)
         for t in range(params['T']):
             L, zt = denoiser(xt[None,...])
-            xt = model.DC_layer(x0,zt[0],L,sense_maps_full,acc_mask)
+            xt = model.DC_layer(x0,zt[0],L,sense_maps,acc_mask)
         breakpoint()
         background = composite_image[0]*ovs_mask
         zerofilled = x0[0].detach().cpu().numpy()
-        cg_sense = sf.cgsense(x0,diff_com_kspace,sense_maps_full,acc_mask)[0].detach().cpu().numpy()
+        cg_sense = sf.cgsense(x0,diff_com_kspace,sense_maps,acc_mask)[0].detach().cpu().numpy()
         SSDU = xt[0].detach().cpu().numpy()
         im_tgrappa = im_tgrappa.detach().cpu().numpy()
         

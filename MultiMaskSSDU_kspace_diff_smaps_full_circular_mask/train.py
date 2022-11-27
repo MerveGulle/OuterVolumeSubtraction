@@ -8,15 +8,16 @@ from matplotlib import pyplot as plt
 
 
 ### HYPERPARAMETERS
-params = dict([('num_epoch', 100),
+params = dict([('sense_maps_type', 'sense_maps_mask'),  # 'sense_maps_full', 'sense_maps_diff', 'sense_maps_mask'
+               ('num_epoch', 100),
                ('batch_size', 1),
                ('learning_rate', 3e-4),
-               ('num_training_slice', 'all'),
-               ('num_validation_slice', 'all'),
+               ('num_training_slice', 'all'),   # 'all' or number (e.g. 300)
+               ('num_validation_slice', 'all'), # 'all' or number (e.g. 100)
                ('num_test_slice', 'all'),
                ('num_workers', 0),              # It should be 0 for Windows machines
                ('use_cpu', False),
-               ('num_mask', 3),                 # number of masks
+               ('num_mask', 3),                 # number of masks (max. 5)
                ('T', 10)])                      # number of iterations
 
 ### PATHS 
@@ -38,10 +39,10 @@ g.manual_seed(0)
 device = torch.device('cuda' if (torch.cuda.is_available() and (not(params['use_cpu']))) else 'cpu')
 
 # 2) Load the Train & Validation Data
-train_dataset = sf.OVS_DatasetTrain(train_data_path, params['num_training_slice'])
+train_dataset = sf.OVS_DatasetTrain(train_data_path, params['sense_maps_type'], params['num_training_slice'])
 train_loader, train_datasets= sf.prepare_train_loaders(train_dataset,params)
 
-validation_dataset = sf.OVS_DatasetValidation(valid_data_path,params['num_validation_slice'])
+validation_dataset = sf.OVS_DatasetValidation(valid_data_path, params['sense_maps_type'], params['num_validation_slice'])
 validation_loader, validation_datasets= sf.prepare_valid_loaders(validation_dataset,params)
 
 # 3) Create Model structure
@@ -63,10 +64,10 @@ min_valid_loss = torch.tensor(float('inf'))
 # training
 figure = plt.figure()
 for epoch in range(params['num_epoch']):
-    for i, (x0, diff_com_kspace, sense_maps_full, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(train_loader['train_loader']):
+    for i, (x0, diff_com_kspace, sense_maps, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(train_loader['train_loader']):
         x0                     = x0[0].to(device)                       # [K,Nx,Ny]
         diff_com_kspace        = diff_com_kspace[0].to(device)          # [1,Nx,Ny,Nc]
-        sense_maps_full        = sense_maps_full[0].to(device)          # [1,Nx,Ny,Nc]
+        sense_maps             = sense_maps[0].to(device)               # [1,Nx,Ny,Nc]
         acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
         data_consistency_masks = data_consistency_masks[0].to(device)   # [Nx,Ny,K]
         # Forward pass
@@ -77,9 +78,9 @@ for epoch in range(params['num_epoch']):
             xt = xk0              # iteration starts with xt
             for t in range(params['T']):
                 L, zt = denoiser(xt[None,...])
-                xt = model.DC_layer(xk0,zt[0],L,sense_maps_full,data_consistency_masks[...,k])
+                xt = model.DC_layer(xk0,zt[0],L,sense_maps,data_consistency_masks[...,k])
             # loss calculation for kth mask
-            kspace_loss = sf.forward(xt, sense_maps_full, loss_mask)
+            kspace_loss = sf.forward(xt, sense_maps, loss_mask)
             # loss calculation
             loss += L1L2Loss(kspace_loss, diff_com_kspace*loss_mask[None,...,None])/params['num_mask']
             
@@ -101,12 +102,12 @@ for epoch in range(params['num_epoch']):
         
         # Optimize
         optimizer.step()
-
-    for i, (x0, diff_com_kspace, sense_maps_full, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(validation_loader['valid_loader']):
+    
+    for i, (x0, diff_com_kspace, sense_maps, acc_mask, data_consistency_masks, sub_slc_tf, index) in enumerate(validation_loader['valid_loader']):
         with torch.no_grad():
             x0                     = x0[0].to(device)                       # [K,Nx,Ny]
             diff_com_kspace        = diff_com_kspace[0].to(device)          # [1,Nx,Ny,Nc]
-            sense_maps_full        = sense_maps_full[0].to(device)          # [1,Nx,Ny,Nc]
+            sense_maps             = sense_maps[0].to(device)               # [1,Nx,Ny,Nc]
             acc_mask               = acc_mask[0].to(device)                 # [Nx,Ny]
             data_consistency_masks = data_consistency_masks[0].to(device)   # [Nx,Ny,K]
             # Forward pass
@@ -117,9 +118,9 @@ for epoch in range(params['num_epoch']):
                 xt = xk0              # iteration starts with xt
                 for t in range(params['T']):
                     L, zt = denoiser(xt[None,...])
-                    xt = model.DC_layer(xk0,zt[0],L,sense_maps_full,data_consistency_masks[...,k])
+                    xt = model.DC_layer(xk0,zt[0],L,sense_maps,data_consistency_masks[...,k])
                 # loss calculation for kth mask
-                kspace_loss = sf.forward(xt, sense_maps_full, loss_mask)
+                kspace_loss = sf.forward(xt, sense_maps, loss_mask)
                 # loss calculation
                 loss += L1L2Loss(kspace_loss, diff_com_kspace*loss_mask[None,...,None])/params['num_mask']
                 
@@ -132,7 +133,7 @@ for epoch in range(params['num_epoch']):
             plt.title('Loss Graph')
             plt.legend(['train loss', 'validation loss'])
             figure.savefig('loss_graph.png')
-        
+        '''
     # if ((epoch+1)%5==0):
     if (min_valid_loss>loss_arr_valid[epoch]):
         min_valid_loss = loss_arr_valid[epoch]
@@ -140,7 +141,7 @@ for epoch in range(params['num_epoch']):
         torch.save(loss_arr, 'train_loss.pt')
         torch.save(loss_arr_valid, 'valid_loss.pt')
         torch.save(L, 'L.pt')
-          
+          '''
     scheduler.step()
     
     print ('-----------------------------')
@@ -149,7 +150,6 @@ for epoch in range(params['num_epoch']):
            Loss validation: {loss_arr_valid[epoch]:.6f}')
     print ('-----------------------------')
 
-breakpoint()
 # 6) Plot the Loss Graph
 
 n_epoch = np.arange(1,params['num_epoch']+1)

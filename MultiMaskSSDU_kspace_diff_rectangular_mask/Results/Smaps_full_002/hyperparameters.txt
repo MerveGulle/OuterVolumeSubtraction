@@ -7,7 +7,7 @@ circular mask
 RealTime_fromPK/short_axis_data
 
 ### HYPERPARAMETERS
-params = dict([('sense_maps_type', 'sense_maps_mask'),  
+params = dict([('sense_maps_type', 'sense_maps_full'),  
 	       ('num_epoch', 100),
                ('batch_size', 1),
                ('learning_rate', 3e-4),
@@ -18,13 +18,15 @@ params = dict([('sense_maps_type', 'sense_maps_mask'),
                ('use_cpu', False),
                ('num_mask', 3),                 # number of masks (max. 5)
                ('T', 10)])                      # number of iterations
-same training model with Smaps_mask_001
+same training model with Smaps_full_001
 
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.8)
 
 loss: Normalized L1 - L2 loss
+train subjects: 1,2,4,5,6,9,10,11,12
+valid subjects: 13,14
 test subjects: 3,8
 
-model_shared_weights.py: RB convolution layers have same coefficients
+model_shared_weights.py: RB convolution layers have same coefficeints
 
 new narrower masks

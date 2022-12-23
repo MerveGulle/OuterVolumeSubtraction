@@ -8,7 +8,7 @@ from scipy.io import savemat
 
 
 ### HYPERPARAMETERS
-params = dict([('sense_maps_type', 'sense_maps_diff'),  # 'sense_maps_full', 'sense_maps_diff', 'sense_maps_mask'
+params = dict([('sense_maps_type', 'sense_maps_full'),  # 'sense_maps_full', 'sense_maps_diff', 'sense_maps_mask'
                ('num_epoch', 100),
                ('batch_size', 1),
                ('learning_rate', 1e-3),
@@ -22,7 +22,7 @@ params = dict([('sense_maps_type', 'sense_maps_diff'),  # 'sense_maps_full', 'se
 
 
 ### PATHS 
-test_data_path = "C:\Codes\p006_OVS\OVS\TestDatasetCircularMask"
+test_data_path = "C:\Codes\p006_OVS\OVS\TestDatasetRectangularMask"
 # test_data_path  = "/home/naxos2-raid12/glle0001/TestDataCircularMask/"
 
 # 1) Device configuration
@@ -37,7 +37,7 @@ test_loader, test_datasets= sf.prepare_test_loaders(test_dataset,params)
 ###############################################################################
 
 denoiser = model.ResNet().to(device)
-denoiser.load_state_dict(torch.load('OVS_multimaskSSDU_diff.pt'))
+denoiser.load_state_dict(torch.load('OVS_multimaskSSDU_full.pt'))
 denoiser.eval()
 
 for i, (x0, diff_com_kspace, sense_maps, composite_image, acc_mask, ovs_mask, im_tgrappa, sub_slc_tf, index) in enumerate(test_loader['test_loader']):
@@ -66,10 +66,12 @@ for i, (x0, diff_com_kspace, sense_maps, composite_image, acc_mask, ovs_mask, im
         slc = sub_slc_tf[0,0,1].detach().cpu().numpy()
         tf  = sub_slc_tf[0,0,2].detach().cpu().numpy()
         
-        filename = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_diff_circular_mask\Results\Smaps_diff_002\images\subject_"+str(sub)+"_slice_"+str(slc)+"_TF_"+str(tf)+".mat"
+        filename = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_diff_rectangular_mask\Results\Smaps_full_002\images\subject_"+str(sub)+"_slice_"+str(slc)+"_TF_"+str(tf)+".mat"
 
-        datadir = {"SSDU_kdiff_Sdiff": SSDU,
-                   "cg_sense": cg_sense}
+        datadir = {"SSDU_kdiff_Sfull": SSDU,
+                   "cg_sense": cg_sense,
+                   "ovs_mask": ovs_mask,
+                   "background": background}
         savemat(filename, datadir) 
 
 

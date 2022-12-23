@@ -24,4 +24,6 @@ scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.8)
 loss: Normalized L1 - L2 loss
 test subjects: 3,8
 
-model_shared_weights.py: RB convolution layers have same coefficints
+model_shared_weights.py: RB convolution layers have same coefficients
+
+old wider masks

@@ -1,9 +1,6 @@
 import torch
 import SupportingFunctions as sf
 import model
-import matplotlib.pyplot as plt
-import numpy as np
-from skimage.metrics import structural_similarity as ssim
 from scipy.io import savemat
 
 
@@ -54,67 +51,19 @@ for i, (x0, composite_kspace, sense_maps, acc_mask, im_tgrappa, sub_slc_tf, inde
             xt = model.DC_layer(x0,zt[0],L,sense_maps,acc_mask)
         
         #zerofilled = x0[0].detach().cpu().numpy()
-        #cg_sense = sf.cgsense(x0,composite_kspace,sense_maps,acc_mask)[0].detach().cpu().numpy()
+        cg_sense = sf.cgsense(x0,composite_kspace,sense_maps,acc_mask)[0].detach().cpu().numpy()
         SSDU = xt[0].detach().cpu().numpy()
         im_tgrappa = im_tgrappa.detach().cpu().numpy()
-        '''
-        data_range = np.abs(im_tgrappa).max() - np.abs(im_tgrappa).min()
-        vmax = np.abs(SSDU).max() * 0.3
-        figure = plt.figure(figsize=(9,7))
-        plt.subplot(1,4,1)
-        plt.imshow(np.abs(zerofilled), cmap='gray', vmax=vmax/4)
-        ax = plt.gca()
-        NMSE = sf.nmse(zerofilled,im_tgrappa)
-        SSIM = ssim(np.abs(im_tgrappa), np.abs(zerofilled), data_range=data_range)
-        plt.text(0.5, 0.05, 'NMSE:'+f'{NMSE:,.3f}'+'\nSSIM:'+f'{SSIM:,.3f}', color = 'white', 
-                 horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
-        plt.axis('off')
-        plt.title('Zerofilled')
-        
-        plt.subplot(1,4,2)
-        plt.imshow(np.abs(cg_sense), cmap='gray', vmax=vmax)
-        ax = plt.gca()
-        NMSE = sf.nmse(cg_sense,im_tgrappa)
-        SSIM = ssim(np.abs(im_tgrappa), np.abs(cg_sense), data_range=data_range)
-        plt.text(0.5, 0.05, 'NMSE:'+f'{NMSE:,.3f}'+'\nSSIM:'+f'{SSIM:,.3f}', color = 'white', 
-                 horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
-        plt.axis('off')
-        plt.title('CG-SENSE')
-        
-        plt.subplot(1,4,3)
-        plt.imshow(np.abs(SSDU), cmap='gray', vmax=vmax)
-        ax = plt.gca()
-        NMSE = sf.nmse(SSDU,im_tgrappa)
-        SSIM = ssim(np.abs(im_tgrappa), np.abs(SSDU), data_range=data_range)
-        plt.text(0.5, 0.05, 'NMSE:'+f'{NMSE:,.3f}'+'\nSSIM:'+f'{SSIM:,.3f}', color = 'white', 
-                 horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
-        plt.axis('off')
-        plt.title('SSDU')
-        
-        plt.subplot(1,4,4)
-        plt.imshow(np.abs(im_tgrappa), cmap='gray', vmax=vmax)
-        ax = plt.gca()
-        plt.text(0.5, 0.05, 'im_tgrappa', color = 'white', 
-                 horizontalalignment='center', verticalalignment='center', transform=ax.transAxes)
-        plt.axis('off')
-        plt.title('Reference')
 
         sub = sub_slc_tf[0,0,0].detach().cpu().numpy()
         slc = sub_slc_tf[0,0,1].detach().cpu().numpy()
         tf  = sub_slc_tf[0,0,2].detach().cpu().numpy()
-        plt.suptitle('Subject:'+f'{sub}'+', Slice:'+f'{slc}'+', Time Frame:'+ f'{tf}', fontsize=14)
         
-        # plt.savefig("C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\Results\images\subject_"+str(sub)+"_slice_"+str(slc)+"_TF_"+str(tf)+".png")
-        # plt.close()
-        '''
-        sub = sub_slc_tf[0,0,0].detach().cpu().numpy()
-        slc = sub_slc_tf[0,0,1].detach().cpu().numpy()
-        tf  = sub_slc_tf[0,0,2].detach().cpu().numpy()
-        
-        filename = "C:\Codes\p006_OVS\OVS\MultiMaskSSDU_kspace_full\Results\Smaps_full_001\images\subject_"+str(sub)+"_slice_"+str(slc)+"_TF_"+str(tf)+".mat"
+        filename = "Results\Smaps_full_001\images\subject_"+str(sub)+"_slice_"+str(slc)+"_TF_"+str(tf)+".mat"
 
         datadir = {"im_tgrappa": im_tgrappa, 
-                   "SSDU_kfull_Sfull": SSDU}
+                   "SSDU_kfull_Sfull": SSDU,
+                   "cg_sense": cg_sense}
         savemat(filename, datadir) 
 
 

@@ -44,7 +44,7 @@ for sub_counter in range(number_of_subjects):
             kdiff_Sdiff = np.abs(slice_data['SSDU_kdiff_Sdiff'])
             cg_kdiff_Sdiff = np.abs(slice_data['cg_sense'])
             im_tgrappa_inner = np.abs(im_tgrappa*(1-ovs_mask))
-            
+            breakpoint()
             figure = plt.figure(figsize=(10,7))
             vmax = np.max(im_tgrappa_inner)
             data_range = np.max(im_tgrappa_inner)

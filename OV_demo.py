@@ -63,7 +63,7 @@ for tf in np.arange(num_img):
     plt.axis("off")
 
 # %% time frame = 8 (Ndyn=7) : Cardiac contraction
-TF = 0
+TF = 5
 shift = np.mod(TF, 8)
 
 

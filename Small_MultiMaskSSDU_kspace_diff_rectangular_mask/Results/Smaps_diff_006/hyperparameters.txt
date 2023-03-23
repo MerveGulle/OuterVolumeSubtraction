@@ -1,0 +1,34 @@
+### HYPERPARAMETERS
+data is generated with mean-7 filter and normalized by whole kspace data.
+test data's smaps are generated so that they don't have hole (with a smaller kernel size).
+5 ssmdu masks are used.
+kspace,diff
+Smaps,diff
+rectangular mask
+
+RealTime_fromPK/short_axis_data
+
+### HYPERPARAMETERS
+params = dict([('sense_maps_type', 'sense_maps_diff'),  # 'sense_maps_full', 'sense_maps_diff', 'sense_maps_mask'
+               ('num_epoch', 100),
+               ('batch_size', 1),
+               ('learning_rate', 1e-4),
+               ('num_training_slice', 'all'),   # 'all' or number (e.g. 300)
+               ('num_validation_slice', 'all'), # 'all' or number (e.g. 100)
+               ('num_test_slice', 'all'),
+               ('num_workers', 0),              # It should be 0 for Windows machines
+               ('use_cpu', False),
+               ('num_mask', 5),                 # number of masks (max. 5)
+               ('T', 10)])                      # number of iterations
+
+
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
+
+loss: Normalized L1 - L2 loss
+test subjects: 3,8
+
+model_shared_weights.py: RB convolution layers have same coefficients
+
+Pretrained after: C:\Codes\p006_OVS\OVS\PreTraning\Results\002\model\PreTrainedResNet_200.pt
+
+L = 0.0324 (100th)

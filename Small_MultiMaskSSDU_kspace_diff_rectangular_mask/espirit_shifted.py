@@ -1,4 +1,3 @@
-# espirit code for not centered kspaces
 import numpy as np
 
 fft  = lambda x, ax : np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(x, axes=ax), axes=ax, norm='ortho'), axes=ax) 
@@ -34,7 +33,6 @@ def espirit(X, k, r, t, c):
     sxt = (cx-r//2, cx+r//2) if (sx > 1) else (0, 1)
     syt = (cy-r//2, cy+r//2) if (sy > 1) else (0, 1)
     szt = (cz-r//2, cz+r//2) if (sz > 1) else (0, 1)
-    
     
     # Extract calibration region.    
     C = X[sxt[0]:sxt[1], syt[0]:syt[1], szt[0]:szt[1], :].astype(np.complex64)
@@ -87,16 +85,17 @@ def espirit(X, k, r, t, c):
                 Gq = kerimgs[idx,jdx,kdx,:,:]
 
                 u, s, vh = np.linalg.svd(Gq, full_matrices=True)
-                for ldx in range(0, 2):
+                for ldx in range(0, nc):
                     if (s[ldx]**2 > c):
                         maps[idx, jdx, kdx, :, ldx] = u[:, ldx]
-
+    
     zz,yy = np.meshgrid(np.linspace(0,sz-1,sz),np.linspace(0,sy-1,sy))
     yy = np.exp(1j*2*np.pi*(cy - sy//2 + 1)/sy*yy)
     zz = np.exp(1j*2*np.pi*(cz - sz//2 + 1)/sz*zz)
     maps = maps * yy[None,...,None,None] * zz[None,...,None,None]
-
+    
     return maps
+
 
 def espirit_proj(x, esp):
     """

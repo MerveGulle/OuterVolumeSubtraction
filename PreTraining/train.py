@@ -5,24 +5,22 @@ import random
 from matplotlib import pyplot as plt
 import SupportingFunctions as sf
 import sys
-from skimage.metrics import structural_similarity as ssim
 
 print('Training code has been started.')
 
 ### HYPERPARAMETERS
-params = dict([('num_epoch', 200),
+params = dict([('num_epoch', 500),
                ('batch_size', 1),
                ('learning_rate', 3e-4),
+               ('num_training_slice', 'all'),
+               ('num_validation_slice', 'all'),
+               ('num_test_slice', 'all'),
                ('num_workers', 0),          # It should be 0 for Windows machines
-               ('exp_num', 7),              # CHANGE EVERYTIME
-               ('save_flag', False),
-               ('use_cpu', False),
-               ('acc_rate', 4),
-               ('K', 10)])   
+               ('use_cpu', False)])          
 
 ### PATHS          
-train_data_path  = 'Knee_Coronal_PD_RawData_300Slices_Train.h5'
-train_coil_path  = 'Knee_Coronal_PD_CoilMaps_300Slices_Train.h5'
+train_data_path = "PreTrainDataset"
+valid_data_path = "PreValidDataset"
                  
 # 0) Fix randomness for reproducible experiment
 torch.backends.cudnn.benchmark = True
@@ -36,10 +34,13 @@ g.manual_seed(0)
 # 1) Device configuration
 device = torch.device('cuda' if (torch.cuda.is_available() and (not(params['use_cpu']))) else 'cpu')
 
-# 2) Load Data
-dataset = sf.KneeDataset(train_data_path,train_coil_path, params['acc_rate'], num_slice=300)
-loaders, datasets= sf.prepare_train_loaders(dataset,params,g)
-mask = dataset.mask.to(device)
+# 2) Load the Train & Validation Data
+train_dataset = sf.TrainImages(train_data_path, params['num_training_slice'])
+train_loader, train_datasets= sf.prepare_train_loaders(train_dataset,params)
+
+validation_dataset = sf.ValidationImages(valid_data_path,params['num_validation_slice'])
+validation_loader, validation_datasets= sf.prepare_valid_loaders(validation_dataset,params)
+
 
 # 3) Create Model structure
 denoiser = model.ResNet().to(device)
@@ -51,21 +52,16 @@ loss_arr       = np.zeros(params['num_epoch'])
 loss_arr_valid = np.zeros(params['num_epoch'])
 
 for epoch in range(params['num_epoch']):
-    for i, (x0, xref, kspace, sens_map, index) in enumerate(loaders['train_loader']):
-        x0       = x0.to(device)
-        xref     = xref.to(device)
-        sens_map = sens_map.to(device)
-        kspace   = kspace.to(device)
+    for i, (reference, noisy, sub_slc_tf, index) in enumerate(train_loader['train_loader']):
+        reference = reference.to(device)
+        noisy     = noisy.to(device)
         # Forward pass
-        xk = x0
-        for k in range(params['K']):
-            L, zk = denoiser(xk)
-            xk = model.DC_layer(x0,zk,L,sens_map,mask)
+        L, recon = denoiser(noisy)
         
         optimizer.zero_grad()
         # Loss calculation
         #loss = sf.L1L2Loss(xref, xk)
-        loss = sf.L1L2Loss(kspace, sf.encode(xk, sens_map, mask=None))
+        loss = sf.L1L2Loss(reference, recon)
         
         if (torch.isnan(loss)):
             torch.save(denoiser.state_dict(), 'model_t_' + f'_ResNet_{epoch:03d}'+ '.pt')
@@ -78,49 +74,34 @@ for epoch in range(params['num_epoch']):
             torch.save(loss_arr_valid, 'valid_loss.pt')
             sys.exit()
             
-        loss_arr[epoch] += loss.item()/len(datasets['train_dataset'])
+        loss_arr[epoch] += loss.item()/len(train_datasets['train_dataset'])
         loss.backward()
         
         # Optimize
         optimizer.step()
         
-    for i, (x0, xref, kspace, sens_map, index) in enumerate(loaders['valid_loader']):
+    for i, (reference, noisy, sub_slc_tf, index) in enumerate(train_loader['train_loader']):
         with torch.no_grad():
-            x0 = x0.to(device)
-            xref = xref.to(device)
-            sens_map = sens_map.to(device)
-            kspace = kspace.to(device)
+            reference = reference.to(device)
+            noisy     = noisy.to(device)
             # Forward pass
-            xk = x0
-            for k in range(params['K']):
-                L, zk = denoiser(xk)
-                xk = model.DC_layer(x0,zk,L,sens_map,mask)
+            L, recon = denoiser(noisy)
             
             # Loss calculation
             #loss = sf.L1L2Loss(xref, xk)
-            loss = sf.L1L2Loss(kspace, sf.encode(xk, sens_map, mask=None))
-            loss_arr_valid[epoch] += loss.item()/len(datasets['valid_dataset'])
+            loss = sf.L1L2Loss(reference, recon)
+            loss_arr_valid[epoch] += loss.item()/len(validation_datasets['valid_dataset'])
         
-        if ((epoch+1)%5==0):
+        if ((epoch+1)%10==0):
             torch.save(denoiser.state_dict(), 'model_t_' + f'_ResNet_{epoch+1:03d}'+ '.pt')
             torch.save(loss_arr, 'train_loss.pt')
             torch.save(loss_arr_valid, 'valid_loss.pt')
-            torch.save(L, 'L.pt')
     scheduler.step()
-    
-    SSIM = (ssim(np.abs(xref.cpu().detach().numpy()[0,:,:]), 
-                 np.abs(xk.cpu().detach().numpy()[0,:,:]), 
-                 data_range=np.abs(xref.cpu().detach().numpy()[0,:,:].max() 
-                                   - np.abs(xref.cpu().detach().numpy()[0,:,:].min()))))
-    
-
-    #NMSE = sf.nmse(np.abs(xk[0].cpu().numpy()), np.abs(xref[0].cpu().numpy()))
+   
     print ('-----------------------------')
     print (f'Epoch [{epoch+1}/{params["num_epoch"]}], \
            Loss training: {loss_arr[epoch]:.4f}, \
-           Loss validation: {loss_arr_valid[epoch]:.4f},  \
-           L: {L:.4f}, \
-           SSIM: {SSIM:.4f}')
+           Loss validation: {loss_arr_valid[epoch]:.4f}')
     print ('-----------------------------')
 
 figure = plt.figure()

@@ -1,0 +1,33 @@
+compared to ResultsSmallCircularMaskWithoutBackground5, Smaps are regenerated so that they don't have hole
+5 SSDU masks are used
+Trained with rect mask, tested with circular mask
+
+Smaps_full_005 (kfull)
+Smaps_full_008
+Smaps_mask_008
+Smaps_diff_008
+
+Pretrained with PreTrainedResNet_200.pt
+
+### HYPERPARAMETERS
+params = dict([('sense_maps_type', 'sense_maps_full'),  # 'sense_maps_full', 'sense_maps_diff', 'sense_maps_mask'
+               ('num_epoch', 100),
+               ('batch_size', 1),
+               ('learning_rate', 1e-4),
+               ('num_training_slice', 'all'),   # 'all' or number (e.g. 300)
+               ('num_validation_slice', 'all'), # 'all' or number (e.g. 100)
+               ('num_test_slice', 'all'),
+               ('num_workers', 0),              # It should be 0 for Windows machines
+               ('use_cpu', False),
+               ('num_mask', 5),                 # number of masks (max. 5)
+               ('T', 10)])                      # number of iterations
+
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
+
+kfullSfull = |x| * (1-ovs_mask)
+kdiffSfull = |x| * (1-ovs_mask)
+kdiffSmask = |x| * (1-ovs_mask)
+kdiffSmask = |x| * (1-ovs_mask)
+reference  = |x|
+
+SSDU and NMSE are calculated over the mask window without background

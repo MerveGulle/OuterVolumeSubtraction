@@ -1,4 +1,3 @@
-# espirit code for not centered kspaces
 import numpy as np
 
 fft  = lambda x, ax : np.fft.fftshift(np.fft.fftn(np.fft.ifftshift(x, axes=ax), axes=ax, norm='ortho'), axes=ax) 
